@@ -1,10 +1,11 @@
--- Food, water, infection, bleeding, stamina, sprinting, regeneration and fall damage.
+-- Food, water, immunity, oxygen, bleeding, stamina, sprinting, regeneration and fall damage.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerState = require(script.Parent.PlayerState)
+local Settings = require(script.Parent.Settings)
 
 local Survival = {}
 
@@ -42,8 +43,8 @@ function Survival.applyConsumable(player: Player, def): boolean
 	if def.water then
 		addStat(player, "Water", def.water)
 	end
-	if def.infection then
-		addStat(player, "Infection", def.infection)
+	if def.immunity then
+		addStat(player, "Immunity", def.immunity)
 	end
 	if def.stamina then
 		addStat(player, "Stamina", def.stamina, S.StaminaMax)
@@ -57,14 +58,22 @@ function Survival.applyConsumable(player: Player, def): boolean
 	return true
 end
 
+-- Called when a weapon (not a zombie) hurts a player.
+function Survival.weaponHit(player: Player, bleedChance: number?)
+	if bleedChance and math.random() < Settings.bleedChance(bleedChance) then
+		player:SetAttribute("Bleeding", true)
+	end
+end
+
 function Survival.zombieHit(player: Player, damage: number)
 	local humanoid = aliveHumanoid(player)
 	if not humanoid then
 		return
 	end
-	humanoid:TakeDamage(damage)
-	addStat(player, "Infection", Config.Zombies.InfectionPerHit)
-	if math.random() < Config.Zombies.BleedChance then
+	local rules = Settings.rules()
+	humanoid:TakeDamage(damage * rules.zombieDamageScale)
+	addStat(player, "Immunity", -Config.Zombies.ImmunityLossPerHit * rules.immunityLossScale)
+	if math.random() < Settings.bleedChance(nil) then
 		player:SetAttribute("Bleeding", true)
 	end
 end
@@ -88,20 +97,29 @@ local function slowTick()
 		local humanoid = aliveHumanoid(player)
 		if humanoid then
 			local sprinting = player:GetAttribute("Sprinting") == true
-			addStat(player, "Food", -S.FoodDrainPerSecond)
-			addStat(player, "Water", -S.WaterDrainPerSecond * (if sprinting then S.SprintWaterMultiplier else 1))
+			local hunger = Settings.rules().hungerScale
+			addStat(player, "Food", -S.FoodDrainPerSecond * hunger)
+			addStat(
+				player,
+				"Water",
+				-S.WaterDrainPerSecond * hunger * (if sprinting then S.SprintWaterMultiplier else 1)
+			)
 
 			local food = (player:GetAttribute("Food") or 100) :: number
 			local water = (player:GetAttribute("Water") or 100) :: number
-			local infection = (player:GetAttribute("Infection") or 0) :: number
+			local immunity = (player:GetAttribute("Immunity") or 100) :: number
+			local oxygen = (player:GetAttribute("Oxygen") or 100) :: number
 			local damage = 0
 
 			if food <= 0 or water <= 0 then
 				damage += S.StarveDamagePerSecond
 			end
-			if infection > S.InfectionDamageStart then
-				local severity = (infection - S.InfectionDamageStart) / (100 - S.InfectionDamageStart)
-				damage += S.InfectionDamagePerSecond * severity
+			if immunity < S.ImmunityDamageBelow then
+				local severity = (S.ImmunityDamageBelow - immunity) / S.ImmunityDamageBelow
+				damage += S.ImmunityDamagePerSecond * severity
+			end
+			if oxygen <= 0 then
+				damage += S.SuffocateDamagePerSecond
 			end
 			if player:GetAttribute("Bleeding") then
 				damage += S.BleedDamagePerSecond
@@ -109,11 +127,23 @@ local function slowTick()
 
 			if damage > 0 then
 				humanoid:TakeDamage(damage)
-			elseif food > S.RegenThreshold and water > S.RegenThreshold and infection < 25 then
+			elseif food > S.RegenThreshold and water > S.RegenThreshold and immunity > S.RegenImmunity then
 				humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + S.RegenPerSecond)
 			end
 		end
 	end
+end
+
+-- True when the point sits inside terrain water.
+local function headUnderwater(position: Vector3): boolean
+	if position.Y > SEA_LEVEL + 40 then
+		return false
+	end
+	local corner =
+		Vector3.new(math.floor(position.X / 4) * 4, math.floor(position.Y / 4) * 4, math.floor(position.Z / 4) * 4)
+	local region = Region3.new(corner, corner + Vector3.new(4, 4, 4))
+	local materials, occupancies = workspace.Terrain:ReadVoxels(region, 4)
+	return materials[1][1][1] == Enum.Material.Water and occupancies[1][1][1] > 0.5
 end
 
 -- Runs ten times per second.
@@ -141,6 +171,22 @@ local function fastTick(dt: number)
 			player:SetAttribute("Stamina", stamina)
 			player:SetAttribute("Sprinting", sprinting)
 			humanoid.WalkSpeed = if sprinting then Config.Player.SprintSpeed else Config.Player.WalkSpeed
+
+			-- Oxygen: drains with the head under water or high above sea level.
+			local head = humanoid.Parent and (humanoid.Parent :: Model):FindFirstChild("Head")
+			local headPosition = if head and head:IsA("BasePart") then head.Position else root.Position
+			local oxygen = (player:GetAttribute("Oxygen") or S.OxygenMax) :: number
+			if headUnderwater(headPosition) then
+				oxygen -= S.OxygenUnderwaterDrain * dt
+			elseif headPosition.Y > SEA_LEVEL + S.OxygenAltitude then
+				oxygen -= S.OxygenAltitudeDrain * dt
+			else
+				oxygen += S.OxygenRegen * dt
+			end
+			oxygen = math.clamp(oxygen, 0, S.OxygenMax)
+			if oxygen ~= player:GetAttribute("Oxygen") then
+				player:SetAttribute("Oxygen", oxygen)
+			end
 
 			-- Fall damage: remember the fastest downward speed, apply it on landing.
 			local fastest = fallTracking[player] or 0

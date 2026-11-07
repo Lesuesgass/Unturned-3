@@ -1,5 +1,5 @@
 -- Per-player inventory state and the helpers that change it.
--- Survival stats live as attributes on the Player (Food, Water, Stamina, Infection, Bleeding)
+-- Survival stats live as attributes on the Player (Food, Water, Stamina, Immunity, Oxygen, Bleeding)
 -- so they replicate to the client automatically.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -83,7 +83,8 @@ function PlayerState.reset(player: Player): State
 	player:SetAttribute("Food", 100)
 	player:SetAttribute("Water", 100)
 	player:SetAttribute("Stamina", Config.Survival.StaminaMax)
-	player:SetAttribute("Infection", 0)
+	player:SetAttribute("Immunity", 100)
+	player:SetAttribute("Oxygen", Config.Survival.OxygenMax)
 	player:SetAttribute("Bleeding", false)
 	player:SetAttribute("Sprinting", false)
 	player:SetAttribute("Reloading", false)

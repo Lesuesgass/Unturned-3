@@ -44,11 +44,38 @@ and see changes live.
 
 To build a place file without Studio running, use `rojo build -o Greyfall.rbxl`.
 
-### Choosing the map
+### Main menu (work in progress)
 
-The default map is set in `src/shared/Config.luau` (`Config.DefaultMap`). To override it in
-Studio, select **Workspace**, add a string attribute named `Map` and set it to
-`KestrelIsland` or `Ridgeline`.
+The first player in a server is the host and sees the main menu:
+
+* **Mode**: Singleplayer turns away anyone else who tries to join the server. Multiplayer
+  lets others join while you play. Proper private servers for singleplayer need the game
+  to be published (Roblox reserved servers), which is planned for a later build.
+* **Map**: Kestrel Island or Ridgeline.
+* **Difficulty**: Easy, Medium or Hard (rules below).
+
+Other players who join before the host starts see a waiting screen, then the loading screen
+while the world is generated. The pre-selected choices are in `src/shared/Config.luau`.
+
+### Difficulty
+
+| Rule | Easy | Medium | Hard |
+|---|---|---|---|
+| Bleeding | Off | On | On |
+| Zombie hit causes bleeding | Never | 5% | 15% |
+| Weapon hit causes bleeding | Never | The weapon's own chance | 1.5 times the weapon's chance |
+| Loot | Full | Half | A quarter |
+| Zombie damage | 75% | 100% | 130% |
+| Immunity lost per zombie hit | 60% | 100% | 140% |
+| Zombies per town | 75% | 100% | 130% |
+| Hunger and thirst | 80% | 100% | 120% |
+
+Loot halves with each step, so it gets exponentially scarcer: fewer loot spots start filled,
+refills are less likely, and refills take twice as long per step.
+
+Weapon bleed chances on Medium: kitchen knife 35%, scrap knife 30%, wooden club 5%,
+crowbar 10%, machete 40%, fire axe 30%, pickaxe 20%, service pistol 25%, pump shotgun 30%,
+hunting rifle 45%, carbine 30%. Fists never cause bleeding.
 
 ## Controls
 
@@ -56,7 +83,7 @@ Studio, select **Workspace**, add a string attribute named `Map` and set it to
 |---|---|
 | WASD, Space | Move, jump |
 | Left Shift | Sprint (uses stamina) |
-| Left click | Attack, shoot, place a structure, plant a charge, repair |
+| Left click | Attack, shoot, place a structure, plant a charge, repair. With empty hands it punches |
 | R | Reload |
 | 1 to 5 | Equip a hotbar slot, press again to put it away |
 | F | Pick up, open doors, open your storage |
@@ -71,18 +98,27 @@ Studio, select **Workspace**, add a string attribute named `Map` and set it to
 * **Food** and **water** drain over time; water drains twice as fast while sprinting. Either one
   at zero drains health.
 * **Health** regenerates slowly while food and water are both above 60 and infection is low.
-* **Infection** rises with every zombie hit. Above 50 it drains health. Antibiotics and medkits
-  bring it down.
-* **Bleeding** can start from a zombie hit and drains health until you use a bandage or medkit.
+* **Immunity** starts full and falls with every zombie hit. Below 50 it drains health, and
+  health only regenerates while it is above 75. Antibiotics (+50) and medkits (+10) restore it.
+* **Oxygen** appears when you need it: it drains with your head under water (about 25
+  seconds of air) and, more slowly, above 240 studs over sea level. At zero you take damage.
+  It refills quickly once you can breathe.
+* **Bleeding** can start from a zombie or weapon hit (see Difficulty) and drains health until
+  you use a bandage or medkit.
+* **Fists**: with nothing equipped, left click punches. A zombie goes down in 5 to 6 punches.
 * **Carry weight** is 12 kg, plus whatever your worn backpack adds.
 * Death drops everything you carried where you fell.
 
 ## Maps
 
-* **Kestrel Island** is a small rural island with a central town, a fishing village, farmland,
-  a lighthouse, a hilltop radar station and forest cabins.
-* **Ridgeline** is a mainland map with a port city on the west coast, a valley town, farms, a
-  fenced military base, a forest hamlet and a lodge up in the eastern mountains.
+* **Kestrel Island** (2304 x 2304 studs) is a rural island with a central town, two fishing
+  villages, two farms, a lighthouse, a hilltop radar station and forest cabins.
+* **Ridgeline** (3584 x 3584 studs) is a mainland map with a port city on the west coast, a
+  valley town, a river village, farms, a fenced military base, a forest hamlet, a mountain pass
+  village and a lodge up in the eastern mountains.
+
+Towns include **large houses**: two storeys with an inside staircase and eight loot spots,
+twice as many as a regular house.
 
 Each town has its own loot (residential, store, medical, police, military, industrial, farm,
 vehicle wrecks) and its own zombie zone. Zones fill up when players come near and empty after
@@ -168,11 +204,41 @@ The server owns every decision: the client only sends requests (use this item, f
 this direction, place this piece here) and the server checks distance, cooldowns, ammo,
 weight and ownership before anything happens.
 
+## Zombies
+
+Zombies shamble: hunched over, arms reaching forward, head tilted, one stiff leg dragging
+behind with the body dipping on each step. They walk at 3 studs per second and chase at about
+10, so a player walking at 14 can get away. The walk is drawn by each player's own game
+instead of the server, and only for zombies within 160 studs of the camera.
+
+They groan now and then (every 10 to 25 seconds, only within 60 studs, at most two voices at
+once, at low volume) and make a sound when they attack.
+
 ## Sounds
 
-Sound ids are in `Config.Sounds`. Most are empty, so those events play nothing. Upload your
-own sounds or pick ones from the Creator Store and paste their ids, for example
-`"rbxassetid://123456789"`.
+Sound ids are in `Config.Sounds`. Any entry can be a list; one is picked at random each time.
+Empty entries play nothing. Upload your own sounds or pick ones from the Creator Store and
+paste their ids, for example `"rbxassetid://123456789"`.
+
+The zombie sounds are community uploads from the Creator Store. Listen to them and swap any
+you do not like:
+
+* Groans: [zombie_groan0](https://create.roblox.com/store/asset/99659350948942),
+  [zombie_groan1](https://create.roblox.com/store/asset/96529107293726),
+  [Zombie Groan 05](https://create.roblox.com/store/asset/134766104012323),
+  [zombie growl](https://create.roblox.com/store/asset/74103327872448)
+* Attacks: [Zombie Attack 1](https://create.roblox.com/store/asset/18942682166),
+  [Zombie Attack 2](https://create.roblox.com/store/asset/18942691946),
+  [Zombie Attack 3](https://create.roblox.com/store/asset/18942711304)
+
+## Performance
+
+* Terrain is generated as a thin shell under the surface instead of solid rock down to the
+  sea floor, and roads and towns are skipped early when far from a point.
+* Workspace streaming is on, so each player only loads the area around them.
+* Zombie zones only fill when a player is near, zombies far from every player think once a
+  second instead of four times, and zombie animation and voices run on clients.
+* World parts have touch events turned off, since nothing uses them.
 
 ## Not in this first build
 

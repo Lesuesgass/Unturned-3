@@ -3,12 +3,12 @@
 -- Fields
 --   name, category, weight (kg per unit), maxStack, description
 --   model = { size, color, material? }   placeholder block used in the world and in hands
---   Consumables: food, water, health, infection (negative cures), stamina, stopsBleeding
---   Melee: damage, range, cooldown, structureDamage,
+--   Consumables: food, water, health, immunity, stamina, stopsBleeding
+--   Melee: damage, range, cooldown, structureDamage, bleedChance (on players, Medium difficulty),
 --          gather = { log?, stone?, scrap? }  damage dealt to trees, rocks and wrecks
 --   Gun: damage, pellets?, fireRate (seconds between shots), automatic, magSize, ammo,
 --        range, spread (degrees), reloadTime, noise (zombie alert radius), sound (Config.Sounds key),
---        structureDamage (per bullet or pellet)
+--        structureDamage (per bullet or pellet), bleedChance (per hit on a player, Medium difficulty)
 --   Explosive: structureDamage, playerDamage, radius, fuse (seconds)
 --   Structure: generated from BuildingDefs, carries tier and piece
 --   Backpack: capacity (extra kg)
@@ -138,7 +138,7 @@ local defs: { [string]: any } = {
 		weight = 0.8,
 		maxStack = 2,
 		health = 60,
-		infection = -10,
+		immunity = 10,
 		stopsBleeding = true,
 		description = "Restores a large amount of health.",
 		model = { size = V(1.2, 0.5, 0.9), color = C(170, 165, 155) },
@@ -157,8 +157,8 @@ local defs: { [string]: any } = {
 		category = "Medical",
 		weight = 0.1,
 		maxStack = 4,
-		infection = -50,
-		description = "Reduces infection by half of the bar.",
+		immunity = 50,
+		description = "Restores half of the immunity bar.",
 		model = { size = V(0.4, 0.6, 0.4), color = C(120, 150, 120) },
 	},
 
@@ -172,6 +172,7 @@ local defs: { [string]: any } = {
 		range = 5,
 		cooldown = 0.45,
 		gather = { log = 4, scrap = 3 },
+		bleedChance = 0.35,
 		structureDamage = 3,
 		description = "Fast but weak.",
 		model = { size = V(0.2, 0.3, 1.8), color = C(160, 160, 160), material = Enum.Material.Metal },
@@ -185,6 +186,7 @@ local defs: { [string]: any } = {
 		range = 5,
 		cooldown = 0.45,
 		gather = { log = 4, scrap = 3 },
+		bleedChance = 0.3,
 		structureDamage = 3,
 		description = "A sharpened piece of scrap.",
 		model = { size = V(0.25, 0.3, 1.8), color = C(120, 110, 100), material = Enum.Material.CorrodedMetal },
@@ -198,6 +200,7 @@ local defs: { [string]: any } = {
 		range = 6,
 		cooldown = 0.8,
 		gather = { log = 6 },
+		bleedChance = 0.05,
 		structureDamage = 6,
 		description = "Crude, heavy, reliable.",
 		model = { size = V(0.5, 0.5, 3.2), color = C(110, 80, 55), material = Enum.Material.Wood },
@@ -211,6 +214,7 @@ local defs: { [string]: any } = {
 		range = 6,
 		cooldown = 0.85,
 		gather = { log = 6, stone = 5, scrap = 30 },
+		bleedChance = 0.1,
 		structureDamage = 10,
 		description = "Solid steel.",
 		model = { size = V(0.25, 0.25, 3), color = C(70, 70, 75), material = Enum.Material.Metal },
@@ -224,6 +228,7 @@ local defs: { [string]: any } = {
 		range = 6,
 		cooldown = 0.75,
 		gather = { log = 15, scrap = 4 },
+		bleedChance = 0.4,
 		structureDamage = 6,
 		description = "Long blade, good reach.",
 		model = { size = V(0.15, 0.5, 3), color = C(150, 150, 145), material = Enum.Material.Metal },
@@ -237,6 +242,7 @@ local defs: { [string]: any } = {
 		range = 6.5,
 		cooldown = 1.2,
 		gather = { log = 35, stone = 5, scrap = 10 },
+		bleedChance = 0.3,
 		structureDamage = 14,
 		description = "Heavy hits. Fells trees quickly.",
 		model = { size = V(0.4, 1, 3.4), color = C(140, 55, 45) },
@@ -250,6 +256,7 @@ local defs: { [string]: any } = {
 		range = 6,
 		cooldown = 1.1,
 		gather = { log = 8, stone = 30, scrap = 12 },
+		bleedChance = 0.2,
 		structureDamage = 12,
 		description = "Breaks rocks into stone.",
 		model = { size = V(1.6, 0.3, 3.2), color = C(95, 90, 85), material = Enum.Material.Metal },
@@ -261,6 +268,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 0.9,
 		maxStack = 1,
+		bleedChance = 0.25,
 		structureDamage = 3,
 		damage = 28,
 		fireRate = 0.22,
@@ -280,6 +288,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3,
 		maxStack = 1,
+		bleedChance = 0.3,
 		structureDamage = 2,
 		damage = 12,
 		pellets = 8,
@@ -300,6 +309,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3.5,
 		maxStack = 1,
+		bleedChance = 0.45,
 		structureDamage = 8,
 		damage = 70,
 		fireRate = 1.1,
@@ -319,6 +329,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3.2,
 		maxStack = 1,
+		bleedChance = 0.3,
 		structureDamage = 4,
 		damage = 30,
 		fireRate = 0.11,
@@ -608,6 +619,26 @@ for id, def in defs do
 	def.id = id
 end
 
+-- Bare hands, used when nothing is equipped. Not an inventory item.
+Items.Fists = {
+	id = "fists",
+	name = "Fists",
+	category = "Melee",
+	weight = 0,
+	maxStack = 1,
+	damageMin = 18, -- 5 to 6 punches kill a 100 health zombie
+	damageMax = 21,
+	damage = 18,
+	range = 4.5,
+	cooldown = 0.55,
+	noHeadshot = true,
+	bleedChance = 0,
+	gather = { log = 2 },
+	structureDamage = 1,
+	description = "",
+	model = { size = Vector3.one, color = Color3.new() },
+} :: ItemDef
+
 function Items.get(id: string): ItemDef?
 	return defs[id]
 end
@@ -636,8 +667,8 @@ function Items.summary(def: ItemDef): string
 	if def.health then
 		table.insert(parts, `Health +{def.health}`)
 	end
-	if def.infection then
-		table.insert(parts, `Infection {def.infection}`)
+	if def.immunity then
+		table.insert(parts, `Immunity +{def.immunity}`)
 	end
 	if def.stamina then
 		table.insert(parts, `Stamina +{def.stamina}`)

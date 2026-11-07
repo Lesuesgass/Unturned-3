@@ -15,7 +15,8 @@ end
 
 function Effects.sound(key: string, position: Vector3)
 	local id = Config.Sounds[key]
-	if id and id ~= "" then
+	local hasSound = if typeof(id) == "table" then #id > 0 else id ~= nil and id ~= ""
+	if hasSound then
 		remote:FireAllClients("Sound", key, position)
 	end
 end

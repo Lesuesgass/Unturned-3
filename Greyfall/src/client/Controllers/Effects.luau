@@ -50,6 +50,9 @@ end
 
 local function sound(key: string, position: Vector3)
 	local id = Config.Sounds[key]
+	if typeof(id) == "table" then
+		id = id[math.random(1, math.max(1, #id))]
+	end
 	if not id or id == "" then
 		return
 	end

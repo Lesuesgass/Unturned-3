@@ -28,6 +28,7 @@ local SECTIONS = {
 		title = "COMBAT",
 		keys = {
 			{ "Left click", "Attack or shoot" },
+			{ "Left click", "Punch with empty hands" },
 			{ "Hold left click", "Automatic fire" },
 			{ "R", "Reload" },
 			{ "1 to 5", "Equip hotbar slot, again to put away" },

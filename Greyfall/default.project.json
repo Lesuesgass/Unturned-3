@@ -23,6 +23,11 @@
           "$path": "src/character/Health.server.luau"
         }
       }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true
+      }
     }
   }
 }

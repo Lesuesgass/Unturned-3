@@ -53,7 +53,14 @@ local function validDirection(direction: any): Vector3?
 end
 
 -- Damages a player or zombie. Returns true if damage was applied.
-function Combat.damageHumanoid(attacker: Player?, humanoid: Humanoid, amount: number, allowSelf: boolean?): boolean
+-- bleedChance is the weapon's chance to make a player bleed (scaled by difficulty).
+function Combat.damageHumanoid(
+	attacker: Player?,
+	humanoid: Humanoid,
+	amount: number,
+	allowSelf: boolean?,
+	bleedChance: number?
+): boolean
 	if humanoid.Health <= 0 then
 		return false
 	end
@@ -72,6 +79,9 @@ function Combat.damageHumanoid(attacker: Player?, humanoid: Humanoid, amount: nu
 			return false
 		end
 		humanoid:TakeDamage(amount)
+		if humanoid.Health > 0 then
+			Survival.weaponHit(victim, bleedChance)
+		end
 		return true
 	end
 	return false
@@ -108,8 +118,11 @@ local function melee(player: Player, state, def, direction: Vector3)
 	local hit = result.Instance
 	local humanoid = humanoidOf(hit)
 	if humanoid then
-		local amount = def.damage * (if hit.Name == "Head" then 1.5 else 1)
-		if Combat.damageHumanoid(player, humanoid, amount) then
+		local amount = if def.damageMin then math.random(def.damageMin, def.damageMax) else def.damage
+		if hit.Name == "Head" and not def.noHeadshot then
+			amount *= 1.5
+		end
+		if Combat.damageHumanoid(player, humanoid, amount, false, def.bleedChance) then
 			Effects.impact(result.Position, true)
 			Effects.sound("MeleeHit", result.Position)
 		end
@@ -172,7 +185,7 @@ local function fire(player: Player, state, def, stack, direction: Vector3)
 			if humanoid then
 				local amount = def.damage
 					* (if result.Instance.Name == "Head" then Config.Combat.HeadshotMultiplier else 1)
-				if Combat.damageHumanoid(player, humanoid, amount) then
+				if Combat.damageHumanoid(player, humanoid, amount, false, def.bleedChance) then
 					Effects.impact(result.Position, true)
 				end
 			else
@@ -328,6 +341,10 @@ function Combat.init()
 		local stack = PlayerState.equippedStack(state)
 		local def = stack and Items.get(stack.id)
 		if not stack or not def then
+			-- Empty hands punch.
+			if kind == "Melee" then
+				melee(player, state, Items.Fists, unit)
+			end
 			return
 		end
 		if kind == "Melee" and def.category == "Melee" then

@@ -1,47 +1,52 @@
--- Ridgeline: a mainland map. A port city on the western coast, a valley town,
--- farmland, a fenced military base, a forest hamlet and a lodge in the eastern mountains.
+-- Ridgeline: a large mainland. A port city on the western coast, a valley town, a river
+-- village, farmland, a fenced military base, a forest hamlet, a mountain pass town and a
+-- lodge high in the eastern mountains.
 
 return {
 	id = "Ridgeline",
 	displayName = "Ridgeline",
-	size = 2560,
+	size = 3584,
 	seed = 9031,
 	shape = "coast",
 	baseHeight = 10,
-	amplitude = 40,
-	noiseScale = 340,
-	forestScale = 240,
+	amplitude = 42,
+	noiseScale = 420,
+	forestScale = 280,
 	forestThreshold = 0,
-	treeAttempts = 2600,
+	treeAttempts = 5200,
 	mountainHeight = 150,
 	snowline = 128,
 
 	towns = {
-		{ name = "Port Ashby", kind = "city", x = -700, z = 100, radius = 200, zombies = 22 },
-		{ name = "Cedar Falls", kind = "town", x = -50, z = -350, radius = 120, zombies = 10 },
-		{ name = "Westfield Farms", kind = "farm", x = -430, z = -660, radius = 110, zombies = 6 },
-		{ name = "Fort Hale", kind = "military", x = 200, z = 460, radius = 140, zombies = 14 },
-		{ name = "Pine Hollow", kind = "cabins", x = 420, z = -150, radius = 80, zombies = 4 },
-		{ name = "Summit Lodge", kind = "cabins", x = 830, z = 300, radius = 60, zombies = 4 },
+		{ name = "Port Ashby", kind = "city", x = -980, z = 140, radius = 210, zombies = 24 },
+		{ name = "Cedar Falls", kind = "town", x = -70, z = -490, radius = 130, zombies = 12 },
+		{ name = "Riverside", kind = "village", x = -560, z = 760, radius = 90, zombies = 6 },
+		{ name = "Westfield Farms", kind = "farm", x = -600, z = -920, radius = 115, zombies = 6 },
+		{ name = "Fort Hale", kind = "military", x = 280, z = 640, radius = 145, zombies = 16 },
+		{ name = "Pine Hollow", kind = "cabins", x = 590, z = -210, radius = 85, zombies = 4 },
+		{ name = "Granite Pass", kind = "village", x = 980, z = -700, radius = 90, zombies = 7 },
+		{ name = "Summit Lodge", kind = "cabins", x = 1160, z = 420, radius = 65, zombies = 5 },
 	},
 
 	roads = {
 		{ "Port Ashby", "Cedar Falls" },
 		{ "Port Ashby", "Westfield Farms" },
-		{ "Port Ashby", "Fort Hale" },
+		{ "Port Ashby", "Riverside" },
+		{ "Riverside", "Fort Hale" },
 		{ "Cedar Falls", "Westfield Farms" },
 		{ "Cedar Falls", "Pine Hollow" },
 		{ "Cedar Falls", "Fort Hale" },
 		{ "Pine Hollow", "Summit Lodge" },
+		{ "Pine Hollow", "Granite Pass" },
 	},
 
 	spawns = {
-		{ x = -860, z = -320 },
-		{ x = -860, z = 520 },
-		{ x = -100, z = 900 },
-		{ x = -100, z = -1000 },
-		{ x = 560, z = -700 },
-		{ x = -250, z = 120 },
-		{ x = 300, z = 1000 },
+		{ x = -1200, z = -450 },
+		{ x = -1200, z = 730 },
+		{ x = -140, z = 1260 },
+		{ x = -140, z = -1400 },
+		{ x = 780, z = -980 },
+		{ x = -350, z = 170 },
+		{ x = 420, z = 1400 },
 	},
 }

@@ -7,6 +7,7 @@ local Terrain = {}
 local RES = 4 -- terrain voxel size in studs
 local CHUNK = 32 -- voxel columns per chunk side
 local MIN_Y = -40
+local SHELL_DEPTH = 16 -- solid terrain kept below the lowest surface point of a chunk
 local SEA_LEVEL = 0
 local OCEAN_FLOOR = -22
 local ROAD_HALF_WIDTH = 7
@@ -86,22 +87,40 @@ function Field:rawHeight(x: number, z: number): number
 	return lerp(OCEAN_FLOOR, land, mask)
 end
 
-function Field:height(x: number, z: number): number
+-- Height plus the nearest road distance and the town (if any) at a point, in one pass.
+-- Roads and towns are skipped with a cheap bounding-box test when they are far away.
+function Field:sample(x: number, z: number): (number, number, any?)
 	local h = self:rawHeight(x, z)
+	local roadDist = math.huge
 	for _, road in self.roads do
-		local d, u = segmentDistance(x, z, road)
-		if d < ROAD_BLEND then
-			local roadY = lerp(road.ay, road.by, u)
-			h = lerp(h, roadY, 1 - smoothstep(ROAD_HALF_WIDTH, ROAD_BLEND, d))
+		if x >= road.minX and x <= road.maxX and z >= road.minZ and z <= road.maxZ then
+			local d, u = segmentDistance(x, z, road)
+			if d < roadDist then
+				roadDist = d
+			end
+			if d < ROAD_BLEND then
+				local roadY = lerp(road.ay, road.by, u)
+				h = lerp(h, roadY, 1 - smoothstep(ROAD_HALF_WIDTH, ROAD_BLEND, d))
+			end
 		end
 	end
+	local inTown = nil
 	for _, town in self.towns do
-		local d = math.sqrt((x - town.x) ^ 2 + (z - town.z) ^ 2)
-		if d < town.radius + TOWN_BLEND then
-			h = lerp(h, town.baseY, 1 - smoothstep(town.radius, town.radius + TOWN_BLEND, d))
+		local dx, dz = x - town.x, z - town.z
+		local reach = town.radius + TOWN_BLEND
+		if dx * dx + dz * dz < reach * reach then
+			local d = math.sqrt(dx * dx + dz * dz)
+			h = lerp(h, town.baseY, 1 - smoothstep(town.radius, reach, d))
+			if d < town.radius then
+				inTown = town
+			end
 		end
 	end
-	return h
+	return h, roadDist, inTown
+end
+
+function Field:height(x: number, z: number): number
+	return (self:sample(x, z))
 end
 
 -- Returns the distance to the nearest road, that road, and the position along it.
@@ -158,6 +177,10 @@ function Terrain.newField(def): Field
 				bz = b.z,
 				by = b.baseY,
 				length = math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2),
+				minX = math.min(a.x, b.x) - ROAD_BLEND,
+				maxX = math.max(a.x, b.x) + ROAD_BLEND,
+				minZ = math.min(a.z, b.z) - ROAD_BLEND,
+				maxZ = math.max(a.z, b.z) + ROAD_BLEND,
 			})
 		else
 			warn(`[Terrain] road references unknown town: {pair[1]} / {pair[2]}`)
@@ -168,13 +191,19 @@ end
 
 local M = Enum.Material
 
-local function surfaceMaterial(field, x: number, z: number, h: number, slope: number): Enum.Material
+local function surfaceMaterial(
+	field,
+	x: number,
+	z: number,
+	h: number,
+	slope: number,
+	roadDist: number,
+	town
+): Enum.Material
 	local def = field.def
-	local roadDist = field:roadDistance(x, z)
 	if roadDist < ROAD_HALF_WIDTH then
 		return M.Asphalt
 	end
-	local town = field:townAt(x, z)
 	if town then
 		if town.kind == "city" then
 			return M.Pavement
@@ -216,23 +245,28 @@ function Terrain.generate(field: Field)
 			local nz = math.min(CHUNK, cells - cz0)
 
 			-- Heights with a one-cell border so slopes can be measured at the edges.
-			local heights = {}
-			local maxH = SEA_LEVEL
+			-- Road distance and town are kept per column so materials need no second lookup.
+			local heights, roads, towns = {}, {}, {}
+			local maxH, minH = SEA_LEVEL, math.huge
 			for i = 0, nx + 1 do
-				local column = {}
-				heights[i] = column
+				local column, roadColumn, townColumn = {}, {}, {}
+				heights[i], roads[i], towns[i] = column, roadColumn, townColumn
 				local x = -half + (cx0 + i - 1 + 0.5) * RES
 				for j = 0, nz + 1 do
 					local z = -half + (cz0 + j - 1 + 0.5) * RES
-					local h = field:height(x, z)
-					column[j] = h
-					if i >= 1 and i <= nx and j >= 1 and j <= nz and h > maxH then
-						maxH = h
+					local h, roadDist, town = field:sample(x, z)
+					column[j], roadColumn[j], townColumn[j] = h, roadDist, town or false
+					if i >= 1 and i <= nx and j >= 1 and j <= nz then
+						maxH = math.max(maxH, h)
+						minH = math.min(minH, h)
 					end
 				end
 			end
 
-			local ny = math.ceil((maxH + RES * 2 - MIN_Y) / RES)
+			-- Only fill a shell below the surface: nothing deeper is ever seen, and skipping
+			-- it cuts the voxel count to a fraction.
+			local baseY = math.max(MIN_Y, math.floor((math.min(minH, SEA_LEVEL) - SHELL_DEPTH) / RES) * RES)
+			local ny = math.ceil((maxH + RES * 2 - baseY) / RES)
 			local materials, occupancies = {}, {}
 			for i = 1, nx do
 				local matX, occX = {}, {}
@@ -248,10 +282,11 @@ function Terrain.generate(field: Field)
 						math.abs(heights[i + 1][j] - heights[i - 1][j]),
 						math.abs(heights[i][j + 1] - heights[i][j - 1])
 					) / (2 * RES)
-					local surface = surfaceMaterial(field, x, z, h, slope)
+					local town = towns[i][j]
+					local surface = surfaceMaterial(field, x, z, h, slope, roads[i][j], if town then town else nil)
 					local under = if surface == M.Sand then M.Sand else M.Ground
 					for y = 1, ny do
-						local y0 = MIN_Y + (y - 1) * RES
+						local y0 = baseY + (y - 1) * RES
 						local occupancy = math.clamp((h - y0) / RES, 0, 1)
 						local material
 						if occupancy > 0 then
@@ -274,7 +309,7 @@ function Terrain.generate(field: Field)
 				end
 			end
 
-			local minCorner = Vector3.new(-half + cx0 * RES, MIN_Y, -half + cz0 * RES)
+			local minCorner = Vector3.new(-half + cx0 * RES, baseY, -half + cz0 * RES)
 			local region = Region3.new(minCorner, minCorner + Vector3.new(nx * RES, ny * RES, nz * RES))
 			terrain:WriteVoxels(region:ExpandToGrid(RES), RES, materials, occupancies)
 			task.wait()

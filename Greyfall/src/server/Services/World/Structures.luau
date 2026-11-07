@@ -18,6 +18,7 @@ local M = Enum.Material
 local function newPart(className: string, parent: Instance, props: { [string]: any }): BasePart
 	local p = Instance.new(className) :: BasePart
 	p.Anchored = true
+	p.CanTouch = false -- nothing in the world uses Touched, so skip the physics work
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	for key, value in props do
@@ -308,9 +309,146 @@ Structures.Types = {
 				right = { Window(0) },
 				roof = "gable",
 				roofH = 6,
-				loot = 3,
+				loot = 4,
 				lootTable = info.lootTable or "Residential",
 			})
+		end,
+	},
+	-- Two-storey house with an inside staircase and loot on both floors.
+	large_house = {
+		footprint = 22,
+		build = function(ctx, model, base, info)
+			local rng = ctx.rng
+			local w, d = 34, 26
+			local groundH, upperH = 10, 9
+			local floorTop = 0.4
+			local style = { color = pick(rng, WALL_COLORS), material = M.WoodPlanks }
+			local floorColor, floorMaterial = C(120, 100, 80), M.WoodPlanks
+			local lootTable = info.lootTable or "Residential"
+
+			newPart("Part", model, {
+				Name = "Floor",
+				Size = V(w, 5, d),
+				CFrame = base * CFrame.new(0, floorTop - 2.5, 0),
+				Color = floorColor,
+				Material = floorMaterial,
+			})
+
+			local function storey(y: number, h: number, openings)
+				Structures.wall(ctx, model, base * CFrame.new(0, y, -d / 2 + 0.5), w, h, 1, openings.front, style)
+				Structures.wall(
+					ctx,
+					model,
+					base * CFrame.new(0, y, d / 2 - 0.5) * CFrame.Angles(0, math.pi, 0),
+					w,
+					h,
+					1,
+					openings.back,
+					style
+				)
+				Structures.wall(
+					ctx,
+					model,
+					base * CFrame.new(-w / 2 + 0.5, y, 0) * CFrame.Angles(0, math.pi / 2, 0),
+					d - 2,
+					h,
+					1,
+					openings.left,
+					style
+				)
+				Structures.wall(
+					ctx,
+					model,
+					base * CFrame.new(w / 2 - 0.5, y, 0) * CFrame.Angles(0, -math.pi / 2, 0),
+					d - 2,
+					h,
+					1,
+					openings.right,
+					style
+				)
+			end
+
+			storey(floorTop, groundH, {
+				front = { Door(-6), Window(5), Window(12) },
+				back = { Window(-8), Window(8) },
+				left = { Window(-5) },
+				right = { Window(-5), Window(5) },
+			})
+
+			-- Upper floor with a stairwell gap in the back-left corner.
+			local slabY = floorTop + groundH + 0.5
+			local stairWidth, stairLength = 5.5, 12
+			local gapX = -w / 2 + 7
+			newPart("Part", model, {
+				Name = "UpperFloor",
+				Size = V(w - 7, 1, d),
+				CFrame = base * CFrame.new((gapX + w / 2) / 2, slabY, 0),
+				Color = floorColor,
+				Material = floorMaterial,
+			})
+			newPart("Part", model, {
+				Name = "UpperFloor",
+				Size = V(7, 1, d - stairLength - 1),
+				CFrame = base * CFrame.new((-w / 2 + gapX) / 2, slabY, -(stairLength + 1) / 2),
+				Color = floorColor,
+				Material = floorMaterial,
+			})
+			-- A wedge rises toward its back (+Z), so the stairs climb toward the back wall.
+			newPart("WedgePart", model, {
+				Name = "Stairs",
+				Size = V(stairWidth, groundH + 0.5, stairLength),
+				CFrame = base * CFrame.new(
+					-w / 2 + 1 + stairWidth / 2,
+					floorTop + (groundH + 0.5) / 2,
+					d / 2 - 1 - stairLength / 2
+				),
+				Color = C(105, 85, 65),
+				Material = M.WoodPlanks,
+			})
+
+			local upperY = slabY + 0.5
+			storey(upperY, upperH, {
+				front = { Window(-9), Window(0), Window(9) },
+				back = { Window(-8), Window(8) },
+				left = { Window(-5) },
+				right = { Window(-5), Window(5) },
+			})
+
+			local top = upperY + upperH
+			newPart("Part", model, {
+				Name = "Ceiling",
+				Size = V(w, 1, d),
+				CFrame = base * CFrame.new(0, top + 0.5, 0),
+				Color = C(150, 145, 135),
+				Material = M.Concrete,
+			})
+			local roofH, halfDepth = 7, d / 2 + 1
+			local roofColor = C(70, 68, 66)
+			newPart("WedgePart", model, {
+				Name = "Roof",
+				Size = V(w + 2, roofH, halfDepth),
+				CFrame = base * CFrame.new(0, top + 1 + roofH / 2, -halfDepth / 2),
+				Color = roofColor,
+				Material = M.Slate,
+			})
+			newPart("WedgePart", model, {
+				Name = "Roof",
+				Size = V(w + 2, roofH, halfDepth),
+				CFrame = base * CFrame.new(0, top + 1 + roofH / 2, halfDepth / 2) * CFrame.Angles(0, math.pi, 0),
+				Color = roofColor,
+				Material = M.Slate,
+			})
+
+			for _ = 1, 4 do
+				local lx = rng:NextNumber(-w / 2 + 9, w / 2 - 3)
+				local lz = rng:NextNumber(-d / 2 + 3, d / 2 - 3)
+				addLoot(ctx, (base * CFrame.new(lx, floorTop + 0.05, lz)).Position, lootTable)
+			end
+			for _ = 1, 4 do
+				local lx = rng:NextNumber(gapX + 2, w / 2 - 3)
+				local lz = rng:NextNumber(-d / 2 + 3, d / 2 - 3)
+				addLoot(ctx, (base * CFrame.new(lx, upperY + 0.05, lz)).Position, lootTable)
+			end
 		end,
 	},
 	cabin = {

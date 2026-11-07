@@ -1,5 +1,5 @@
 -- Heads-up display: survival bars, hotbar, equipped item, crosshair, prompts,
--- notifications, clock, loading screen, death screen and damage flash.
+-- notifications, clock, death screen and damage flash. The menu and loading screen live in Menu.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,7 +27,6 @@ local equippedAmmo: TextLabel
 local clockLabel: TextLabel
 local statusLabel: TextLabel
 local notifyList: Frame
-local loading: Frame
 local death: Frame
 local deathDetail: TextLabel
 local flash: Frame
@@ -37,7 +36,8 @@ local STATS = {
 	{ key = "Food", label = "FOOD", color = Theme.Food },
 	{ key = "Water", label = "WATER", color = Theme.Water },
 	{ key = "Stamina", label = "STAMINA", color = Theme.Stamina },
-	{ key = "Infection", label = "INFECTION", color = Theme.Infection },
+	{ key = "Immunity", label = "IMMUNITY", color = Theme.Immunity },
+	{ key = "Oxygen", label = "OXYGEN", color = Theme.Oxygen, onlyWhenLow = true },
 }
 
 local function buildStats()
@@ -45,7 +45,8 @@ local function buildStats()
 		Name = "Stats",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 16, 1, -16),
-		Size = UDim2.fromOffset(240, 5 * 24 + 16),
+		Size = UDim2.fromOffset(240, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = gui,
 	})
 	Ui.padding(8).Parent = holder
@@ -81,16 +82,16 @@ local function buildStats()
 			"Frame",
 			{ BackgroundColor3 = stat.color, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), Parent = track }
 		)
-		bars[stat.key] = { fill = fill, value = value }
+		bars[stat.key] = { fill = fill, value = value, row = row, onlyWhenLow = stat.onlyWhenLow }
 	end
 	statusLabel = Ui.label({
 		Text = "",
 		TextColor3 = Theme.Danger,
 		FontFace = Theme.FontBold,
 		TextSize = Theme.SmallTextSize,
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 0, -6),
 		Size = UDim2.new(1, 0, 0, 14),
+		LayoutOrder = 100,
+		Visible = false,
 		Parent = holder,
 	})
 end
@@ -201,7 +202,7 @@ local function buildCorner()
 	notifyList = Ui.new("Frame", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 16, 1, -176),
+		Position = UDim2.new(0, 16, 1, -230),
 		Size = UDim2.fromOffset(360, 200),
 		Parent = gui,
 	})
@@ -251,35 +252,6 @@ local function buildOverlays()
 		Size = UDim2.fromOffset(400, 20),
 		ZIndex = 11,
 		Parent = death,
-	})
-
-	loading = Ui.new("Frame", {
-		BackgroundColor3 = Theme.Panel,
-		BorderSizePixel = 0,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 20,
-		Parent = gui,
-	})
-	Ui.label({
-		Text = "GREYFALL",
-		FontFace = Theme.FontBold,
-		TextSize = 30,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(400, 36),
-		ZIndex = 21,
-		Parent = loading,
-	})
-	Ui.label({
-		Text = "Generating the world",
-		TextColor3 = Theme.TextDim,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.51),
-		Size = UDim2.fromOffset(400, 20),
-		ZIndex = 21,
-		Parent = loading,
 	})
 end
 
@@ -414,7 +386,6 @@ function Hud.init()
 			return
 		end
 		accumulator = 0
-		loading.Visible = workspace:GetAttribute("WorldReady") ~= true
 
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -423,12 +394,17 @@ function Hud.init()
 			Food = player:GetAttribute("Food") or 0,
 			Water = player:GetAttribute("Water") or 0,
 			Stamina = player:GetAttribute("Stamina") or 0,
-			Infection = player:GetAttribute("Infection") or 0,
+			Immunity = player:GetAttribute("Immunity") or 100,
+			Oxygen = player:GetAttribute("Oxygen") or 100,
 		}
 		for key, bar in bars do
 			local v = math.clamp(values[key], 0, 100)
 			bar.fill.Size = UDim2.fromScale(v / 100, 1)
 			bar.value.Text = tostring(math.floor(v + 0.5))
+			if bar.onlyWhenLow then
+				-- Oxygen only shows while under water or high up.
+				bar.row.Visible = v < 99.5
+			end
 		end
 		local status = {}
 		if player:GetAttribute("Bleeding") then
@@ -441,6 +417,7 @@ function Hud.init()
 			table.insert(status, "DEHYDRATED")
 		end
 		statusLabel.Text = table.concat(status, "   ")
+		statusLabel.Visible = #status > 0
 		clockLabel.Text = formatClock()
 	end)
 end

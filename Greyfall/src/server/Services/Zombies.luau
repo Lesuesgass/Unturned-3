@@ -9,36 +9,18 @@ local Debris = game:GetService("Debris")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Survival = require(script.Parent.Survival)
 local Loot = require(script.Parent.Loot)
-local Effects = require(script.Parent.Effects)
+local Settings = require(script.Parent.Settings)
 
 local Zombies = {}
 
 local Z = Config.Zombies
 
--- Fallback animation ids (Roblox's default R15 walk and idle), used only if the generated
--- rig does not carry its own Animate data.
-local FALLBACK_WALK = "rbxassetid://507777826"
-local FALLBACK_IDLE = "rbxassetid://507766388"
-
 local folder: Folder
 local templates: { Model } = {}
-local animationIds = { walk = FALLBACK_WALK, idle = FALLBACK_IDLE }
 local zombies = {}
 local zones = {}
 local total = 0
 local rng = Random.new()
-
-local function readAnimation(animate: Instance?, valueName: string): string?
-	local value = animate and animate:FindFirstChild(valueName)
-	if not value then
-		return nil
-	end
-	local animation = value:FindFirstChildOfClass("Animation")
-	if animation and animation.AnimationId ~= "" then
-		return animation.AnimationId
-	end
-	return nil
-end
 
 local function buildTemplate(shirt: Color3, pants: Color3): Model?
 	local description = Instance.new("HumanoidDescription")
@@ -58,9 +40,9 @@ local function buildTemplate(shirt: Color3, pants: Color3): Model?
 		return nil
 	end
 
+	-- The limping walk is drawn by each client (ZombieAnimator), so the rig needs no
+	-- animation scripts or Animator, which also saves server work.
 	local animate = model:FindFirstChild("Animate")
-	animationIds.walk = readAnimation(animate, "walk") or animationIds.walk
-	animationIds.idle = readAnimation(animate, "idle") or animationIds.idle
 	if animate then
 		animate:Destroy()
 	end
@@ -71,12 +53,17 @@ local function buildTemplate(shirt: Color3, pants: Color3): Model?
 	end
 
 	model.Name = "Zombie"
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.MaxHealth = Z.Health
 	humanoid.Health = Z.Health
 	humanoid.WalkSpeed = Z.WalkSpeed
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if animator then
+		animator:Destroy()
+	end
 	model:SetAttribute("Zombie", true)
 	return model
 end
@@ -145,18 +132,6 @@ local function spawnZombie(zone): boolean
 	model.Parent = folder
 	root:SetNetworkOwner(nil)
 
-	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
-	local walkAnimation = Instance.new("Animation")
-	walkAnimation.AnimationId = animationIds.walk
-	local idleAnimation = Instance.new("Animation")
-	idleAnimation.AnimationId = animationIds.idle
-	local walkTrack, idleTrack
-	pcall(function()
-		walkTrack = animator:LoadAnimation(walkAnimation)
-		idleTrack = animator:LoadAnimation(idleAnimation)
-		idleTrack:Play()
-	end)
-
 	local zombie = {
 		model = model,
 		humanoid = humanoid,
@@ -168,7 +143,8 @@ local function spawnZombie(zone): boolean
 		alertUntil = 0,
 		lastAttack = 0,
 		nextWander = 0,
-		nextGroan = os.clock() + rng:NextNumber(4, 16),
+		speedScale = rng:NextNumber(0.85, 1.15),
+		nextThink = 0,
 		lastPosition = root.Position,
 		stuckFor = 0,
 		dead = false,
@@ -177,21 +153,6 @@ local function spawnZombie(zone): boolean
 	total += 1
 	zone.alive += 1
 
-	humanoid.Running:Connect(function(speed)
-		if not walkTrack or not idleTrack then
-			return
-		end
-		if speed > 0.5 then
-			if not walkTrack.IsPlaying then
-				idleTrack:Stop(0.2)
-				walkTrack:Play(0.2)
-			end
-			walkTrack:AdjustSpeed(math.clamp(speed / 12, 0.4, 1.4))
-		elseif not idleTrack.IsPlaying then
-			walkTrack:Stop(0.2)
-			idleTrack:Play(0.2)
-		end
-	end)
 	humanoid.Died:Connect(function()
 		onDied(zombie)
 	end)
@@ -261,22 +222,19 @@ local function think(zombie, now: number, dt: number)
 	local chasing = false
 	if targetRoot then
 		chasing = true
-		humanoid.WalkSpeed = Z.ChaseSpeed
+		humanoid.WalkSpeed = Z.ChaseSpeed * zombie.speedScale
 		humanoid:MoveTo(targetRoot.Position)
 		local offset = targetRoot.Position - root.Position
 		local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
 		if flat < Z.AttackRange and math.abs(offset.Y) < 5 and now - zombie.lastAttack > Z.AttackCooldown then
 			zombie.lastAttack = now
 			Survival.zombieHit(zombie.target :: Player, Z.AttackDamage)
-			Effects.sound("ZombieAttack", root.Position)
-		end
-		if now > zombie.nextGroan then
-			zombie.nextGroan = now + rng:NextNumber(6, 14)
-			Effects.sound("ZombieGroan", root.Position)
+			-- Clients see this attribute change, play the lunge and the attack sound.
+			zombie.model:SetAttribute("AttackAt", workspace:GetServerTimeNow())
 		end
 	elseif zombie.alertPosition and now < zombie.alertUntil then
 		chasing = true
-		humanoid.WalkSpeed = Z.ChaseSpeed
+		humanoid.WalkSpeed = Z.ChaseSpeed * zombie.speedScale
 		humanoid:MoveTo(zombie.alertPosition)
 		if (zombie.alertPosition - root.Position).Magnitude < 8 then
 			zombie.alertPosition = nil
@@ -285,7 +243,7 @@ local function think(zombie, now: number, dt: number)
 		zombie.alertPosition = nil
 		if now > zombie.nextWander then
 			zombie.nextWander = now + rng:NextNumber(4, 10)
-			humanoid.WalkSpeed = Z.WalkSpeed
+			humanoid.WalkSpeed = Z.WalkSpeed * zombie.speedScale
 			local angle = rng:NextNumber(0, math.pi * 2)
 			local distance = rng:NextNumber(4, 30)
 			humanoid:MoveTo(zombie.home + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance))
@@ -383,7 +341,7 @@ function Zombies.init(world)
 				name = source.name,
 				center = source.center,
 				radius = source.radius,
-				count = source.count,
+				count = math.max(1, math.round(source.count * Settings.rules().zombieCountScale)),
 				alive = 0,
 				cooldowns = {},
 				lastNear = -math.huge,
@@ -401,7 +359,12 @@ function Zombies.init(world)
 			local dt = now - last
 			last = now
 			for _, zombie in zombies do
-				think(zombie, now, dt)
+				if now >= zombie.nextThink then
+					-- Zombies far from every player think once a second instead of four times.
+					local far = not zombie.target and nearestPlayerDistance(zombie.root.Position) > Z.IdleDistance
+					zombie.nextThink = now + (if far then Z.IdleThinkInterval else 0)
+					think(zombie, now, if far then Z.IdleThinkInterval else dt)
+				end
 			end
 			zoneTimer += dt
 			if zoneTimer >= 1 then

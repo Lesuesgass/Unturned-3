@@ -1,5 +1,5 @@
 -- Player controls.
---   Left click   attack, shoot, place a structure, plant a charge, or repair
+--   Left click   attack, shoot, place a structure, plant a charge, or repair; punch with empty hands
 --   R            reload
 --   1 to 5       equip a hotbar slot (press again to put it away)
 --   Left Shift   sprint
@@ -60,8 +60,8 @@ end
 
 local function primary()
 	local stack = State.equippedStack()
-	local def = stack and Items.get(stack.id)
-	if not stack or not def then
+	local def = if stack then Items.get(stack.id) else Items.Fists
+	if not def then
 		return
 	end
 	local now = os.clock()
@@ -83,12 +83,12 @@ local function primary()
 		end
 	elseif def.category == "Structure" then
 		local input = Build.input
-		if input then
+		if input and stack then
 			action:FireServer("Place", stack.uid, input)
 		end
 	elseif def.category == "Explosive" then
 		local result = Aim.cast(10, { workspace:FindFirstChild("Drops") :: Instance })
-		if result then
+		if result and stack then
 			action:FireServer("Plant", stack.uid, result.Position, result.Normal)
 		end
 	elseif def.repairs then

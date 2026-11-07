@@ -8,6 +8,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Items)
 local Drops = require(script.Parent.Drops)
 local LootTables = require(script.Parent.LootTables)
+local Settings = require(script.Parent.Settings)
 
 local Loot = {}
 
@@ -57,10 +58,15 @@ function Loot.dropFromTable(name: string, position: Vector3)
 end
 
 function Loot.init(world)
+	-- Each difficulty step halves the loot: fewer filled points, rarer and slower refills.
+	local scale = Settings.rules().lootScale
+	local initialFill = Config.Loot.InitialFill * scale
+	local respawnChance = Config.Loot.RespawnChance * scale
+	local respawnSeconds = Config.Loot.RespawnSeconds / scale
 	for _, source in world.lootPoints do
 		local point = { position = source.position, table = source.table, drop = nil, emptiedAt = -math.huge }
 		table.insert(points, point)
-		if rng:NextNumber() < Config.Loot.InitialFill then
+		if rng:NextNumber() < initialFill then
 			fill(point)
 		else
 			point.emptiedAt = os.clock()
@@ -74,10 +80,10 @@ function Loot.init(world)
 			for _, point in points do
 				if
 					not point.drop
-					and now - point.emptiedAt > Config.Loot.RespawnSeconds
+					and now - point.emptiedAt > respawnSeconds
 					and not playerNear(point.position, Config.Loot.PlayerBlockRadius)
 				then
-					if rng:NextNumber() < Config.Loot.RespawnChance then
+					if rng:NextNumber() < respawnChance then
 						fill(point)
 					else
 						point.emptiedAt = now

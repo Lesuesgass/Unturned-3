@@ -22,7 +22,8 @@ return {
 	Food = C(168, 132, 78),
 	Water = C(78, 118, 140),
 	Stamina = C(186, 184, 170),
-	Infection = C(112, 138, 74),
+	Immunity = C(112, 138, 74),
+	Oxygen = C(120, 160, 175),
 
 	TextSize = 16,
 	SmallTextSize = 13,

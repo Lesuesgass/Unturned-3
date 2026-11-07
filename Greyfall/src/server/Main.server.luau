@@ -1,4 +1,13 @@
--- Server entry point. Builds the world, starts every service, then lets players spawn.
+-- Server entry point.
+--
+-- 1. The first player to join is the host and sees the main menu.
+-- 2. The host picks singleplayer or multiplayer, a map and a difficulty.
+-- 3. The server builds that world, starts every service, then lets players spawn.
+--
+-- Workspace attributes tell clients where things stand:
+--   GameState  "Menu", "Loading" or "Ready"
+--   HostUserId the player allowed to choose settings
+--   LoadingStage, MapName, Difficulty, Mode
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,8 +18,68 @@ local Net = require(Shared.Net)
 
 Net.setup()
 Players.CharacterAutoLoads = false
+workspace:SetAttribute("GameState", "Menu")
 
 local Services = script.Parent.Services
+local Settings = require(Services.Settings)
+
+-- Main menu ---------------------------------------------------------------------------
+
+local function updateHost()
+	local host = Players:GetPlayers()[1]
+	workspace:SetAttribute("HostUserId", if host then host.UserId else 0)
+end
+Players.PlayerAdded:Connect(updateHost)
+Players.PlayerRemoving:Connect(function()
+	task.defer(updateHost)
+end)
+updateHost()
+
+local validMaps = {}
+for _, entry in Config.Maps do
+	validMaps[entry.id] = entry
+end
+
+local chosen = Instance.new("BindableEvent")
+local setupConnection = Net.get("Setup").OnServerEvent:Connect(function(player, mode, map, difficulty)
+	if workspace:GetAttribute("GameState") ~= "Menu" then
+		return
+	end
+	if player.UserId ~= workspace:GetAttribute("HostUserId") then
+		return
+	end
+	if mode ~= "Singleplayer" and mode ~= "Multiplayer" then
+		return
+	end
+	if typeof(map) ~= "string" or not validMaps[map] then
+		return
+	end
+	if typeof(difficulty) ~= "string" or not Config.Difficulty[difficulty] then
+		return
+	end
+	Settings.mode, Settings.map, Settings.difficulty = mode, map, difficulty
+	workspace:SetAttribute("GameState", "Loading")
+	chosen:Fire()
+end)
+chosen.Event:Wait()
+setupConnection:Disconnect()
+
+workspace:SetAttribute("Mode", Settings.mode)
+workspace:SetAttribute("Difficulty", Settings.difficulty)
+
+-- Singleplayer servers turn away anyone else who tries to join.
+local function enforceSingleplayer(player: Player)
+	if Settings.mode == "Singleplayer" and player.UserId ~= workspace:GetAttribute("HostUserId") then
+		player:Kick("This server is running a singleplayer game.")
+	end
+end
+Players.PlayerAdded:Connect(enforceSingleplayer)
+for _, player in Players:GetPlayers() do
+	enforceSingleplayer(player)
+end
+
+-- World and services ------------------------------------------------------------------
+
 local MapBuilder = require(Services.World.MapBuilder)
 local PlayerState = require(Services.PlayerState)
 local Equipment = require(Services.Equipment)
@@ -26,14 +95,12 @@ local Combat = require(Services.Combat)
 local Inventory = require(Services.Inventory)
 local Environment = require(Services.Environment)
 
-local mapId = workspace:GetAttribute("Map")
-if typeof(mapId) ~= "string" or mapId == "" then
-	mapId = Config.DefaultMap
-end
-
 Environment.init()
-local world = MapBuilder.build(mapId)
+local world = MapBuilder.build(Settings.map, function(stage)
+	workspace:SetAttribute("LoadingStage", stage)
+end)
 workspace:SetAttribute("MapName", world.def.displayName)
+workspace:SetAttribute("LoadingStage", "Spawning loot and zombies")
 
 PlayerState.init()
 Equipment.init()
@@ -47,6 +114,8 @@ Building.init(world)
 Zombies.init(world)
 Combat.init()
 Inventory.init()
+
+-- Players -----------------------------------------------------------------------------
 
 local spawnRandom = Random.new()
 
@@ -104,6 +173,9 @@ local function onCharacterAdded(player: Player, character: Model)
 end
 
 local function onPlayerAdded(player: Player)
+	if Settings.mode == "Singleplayer" and player.UserId ~= workspace:GetAttribute("HostUserId") then
+		return
+	end
 	player.CameraMaxZoomDistance = Config.Player.MaxCameraZoom
 	player.DevEnableMouseLock = false
 	player.CharacterAdded:Connect(function(character)
@@ -117,4 +189,5 @@ for _, player in Players:GetPlayers() do
 	task.spawn(onPlayerAdded, player)
 end
 
+workspace:SetAttribute("GameState", "Ready")
 workspace:SetAttribute("WorldReady", true)

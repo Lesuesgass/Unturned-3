@@ -11,10 +11,18 @@ local V = Vector3.new
 
 -- Buildings each kind of town receives, placed from the centre outwards.
 local PLANS = {
-	village = { { "store", 1 }, { "house", 6 }, { "shed", 2 } },
-	town = { { "police", 1 }, { "clinic", 1 }, { "store", 2 }, { "house", 8 }, { "shed", 1 } },
-	city = { { "apartment", 8 }, { "warehouse", 2 }, { "store", 5 }, { "clinic", 2 }, { "police", 1 }, { "house", 6 } },
-	farm = { { "barn", 2 }, { "house", 2 }, { "silo", 2 }, { "shed", 2 } },
+	village = { { "store", 1 }, { "large_house", 2 }, { "house", 5 }, { "shed", 2 } },
+	town = { { "police", 1 }, { "clinic", 1 }, { "store", 2 }, { "large_house", 3 }, { "house", 7 }, { "shed", 1 } },
+	city = {
+		{ "apartment", 8 },
+		{ "warehouse", 2 },
+		{ "store", 5 },
+		{ "clinic", 2 },
+		{ "police", 1 },
+		{ "large_house", 3 },
+		{ "house", 5 },
+	},
+	farm = { { "barn", 2 }, { "large_house", 1 }, { "house", 1 }, { "silo", 2 }, { "shed", 2 } },
 	military = { { "warehouse", 3 }, { "barracks", 3 }, { "watchtower", 2 } },
 	militarySmall = { { "warehouse", 1 }, { "barracks", 1 }, { "watchtower", 2 } },
 	cabins = { { "cabin", 4 } },
@@ -220,7 +228,7 @@ local function resolveSpawns(field, def)
 	return spawns
 end
 
-function MapBuilder.build(mapId: string)
+function MapBuilder.build(mapId: string, onProgress: ((string) -> ())?)
 	local module = Maps:FindFirstChild(mapId)
 	if not module then
 		warn(`[MapBuilder] unknown map "{mapId}", falling back to KestrelIsland`)
@@ -229,6 +237,12 @@ function MapBuilder.build(mapId: string)
 	local def = require(module :: ModuleScript)
 
 	local started = os.clock()
+	local function progress(stage: string)
+		if onProgress then
+			onProgress(stage)
+		end
+	end
+	progress("Shaping the terrain")
 	local field = Terrain.newField(def)
 	Terrain.generate(field)
 
@@ -242,6 +256,7 @@ function MapBuilder.build(mapId: string)
 
 	local ctx = { rng = Random.new(def.seed), loot = {}, doors = {}, resources = {} }
 
+	progress("Building towns")
 	local towns = Instance.new("Folder")
 	towns.Name = "Towns"
 	towns.Parent = root
@@ -254,6 +269,7 @@ function MapBuilder.build(mapId: string)
 	wrecks.Name = "Wrecks"
 	wrecks.Parent = root
 	placeWrecks(ctx, field, wrecks)
+	progress("Growing forests")
 	placeNature(ctx, field, def, root)
 	placeBoundary(field, root)
 
