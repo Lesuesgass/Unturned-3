@@ -5,6 +5,7 @@
 --   Left Shift   sprint
 --   V            switch between first and third person
 --   X            salvage your own structure (hammer equipped)
+-- The in-game list of keys lives in Keybinds.luau; keep both in step.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

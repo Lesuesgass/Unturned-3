@@ -107,36 +107,24 @@ local function construct(record, placement, def)
 	elseif placement.shape == "doorway" then
 		local frame: CFrame = placement.frame
 		local h = BuildingDefs.WallHeight
-		newPart(
-			"Part",
-			model,
-			{
-				Size = Vector3.new(2, h, 1),
-				CFrame = frame * CFrame.new(-3, h / 2, 0),
-				Color = look.Color,
-				Material = look.Material,
-			}
-		)
-		newPart(
-			"Part",
-			model,
-			{
-				Size = Vector3.new(2, h, 1),
-				CFrame = frame * CFrame.new(3, h / 2, 0),
-				Color = look.Color,
-				Material = look.Material,
-			}
-		)
-		newPart(
-			"Part",
-			model,
-			{
-				Size = Vector3.new(4, h - 7, 1),
-				CFrame = frame * CFrame.new(0, 7 + (h - 7) / 2, 0),
-				Color = look.Color,
-				Material = look.Material,
-			}
-		)
+		newPart("Part", model, {
+			Size = Vector3.new(2, h, 1),
+			CFrame = frame * CFrame.new(-3, h / 2, 0),
+			Color = look.Color,
+			Material = look.Material,
+		})
+		newPart("Part", model, {
+			Size = Vector3.new(2, h, 1),
+			CFrame = frame * CFrame.new(3, h / 2, 0),
+			Color = look.Color,
+			Material = look.Material,
+		})
+		newPart("Part", model, {
+			Size = Vector3.new(4, h - 7, 1),
+			CFrame = frame * CFrame.new(0, 7 + (h - 7) / 2, 0),
+			Color = look.Color,
+			Material = look.Material,
+		})
 	elseif record.piece == "door" then
 		local frame: CFrame = placement.frame
 		local hinge = frame * CFrame.new(-1.9, 3.5, 0)

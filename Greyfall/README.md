@@ -8,6 +8,13 @@ This folder holds only original code. It contains no code, maps, models, fonts o
 any other game. All the world geometry is generated from plain parts and terrain when the
 server starts.
 
+## Fastest way to try it
+
+If someone has built `Greyfall.rbxl` for you (`rojo build -o Greyfall.rbxl`), install
+**Roblox Studio**, double-click the file (or use File, Open from File in Studio) and press
+**Play**. No other tools are needed. Use the Rojo setup below when you want to edit the code
+and see changes live.
+
 ## Getting it running (first time with Roblox)
 
 1. Install **Roblox Studio** from the Roblox website and sign in.
@@ -57,6 +64,7 @@ Studio, select **Workspace**, add a string attribute named `Map` and set it to
 | C | Crafting |
 | X | Salvage your own structure (hammer equipped) |
 | V | First or third person |
+| H | Show or hide the controls list in game |
 
 ## Survival
 
