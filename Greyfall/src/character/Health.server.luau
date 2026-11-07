@@ -1,0 +1,2 @@
+-- Replaces Roblox's default health regeneration script.
+-- Health regeneration is handled by the Survival service, based on food and water.
