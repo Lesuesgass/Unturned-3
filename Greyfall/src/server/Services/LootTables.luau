@@ -14,6 +14,7 @@ local tables = {
 		{ "soda_can", 8, 1, 2 },
 		{ "bandage", 7, 1, 2 },
 		{ "painkillers", 4, 1, 1 },
+		{ "dressing", 2, 1, 1 },
 		{ "cloth", 8, 1, 3 },
 		{ "kitchen_knife", 4, 1, 1 },
 		{ "flashlight", 3, 1, 1 },
@@ -59,6 +60,7 @@ local tables = {
 	},
 	Medical = {
 		{ "bandage", 14, 1, 3 },
+		{ "dressing", 8, 1, 2 },
 		{ "medkit", 5, 1, 1 },
 		{ "painkillers", 10, 1, 2 },
 		{ "antibiotics", 7, 1, 1 },
@@ -85,6 +87,7 @@ local tables = {
 		{ "canteen", 6, 1, 1 },
 		{ "medkit", 4, 1, 1 },
 		{ "bandage", 6, 1, 2 },
+		{ "dressing", 4, 1, 1 },
 		{ "antibiotics", 3, 1, 1 },
 		{ "field_pack", 3, 1, 1 },
 		{ "fire_axe", 2, 1, 1 },

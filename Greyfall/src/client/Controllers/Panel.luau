@@ -1,10 +1,11 @@
 -- Inventory, crafting and storage panel.
---   I opens the inventory, C opens crafting, Escape or the same key closes it.
+--   Tab or I opens the inventory, C opens crafting, Escape or the same key closes it.
 --   Opening a storage container shows its contents in a third column.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 
 local Shared = ReplicatedStorage.Shared
 local Theme = require(Shared.Theme)
@@ -224,9 +225,20 @@ local function inventoryDetails()
 		detailButton("Equip", 10, function()
 			action:FireServer("Use", uid)
 		end)
+	end
+	-- Any item can sit in the hotbar: weapons are held, bandages and food are used with a click.
+	if def.category ~= "Backpack" and def.category ~= "Material" and def.category ~= "Ammo" then
+		Ui.label({
+			Text = "Put in hotbar slot",
+			TextColor3 = Theme.TextDim,
+			TextSize = Theme.SmallTextSize,
+			Size = UDim2.new(1, 0, 0, 14),
+			LayoutOrder = 11,
+			Parent = details,
+		})
 		local slotRow = Ui.new(
 			"Frame",
-			{ BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = 11, Parent = details }
+			{ BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = 12, Parent = details }
 		)
 		Ui.new(
 			"UIListLayout",
@@ -242,18 +254,18 @@ local function inventoryDetails()
 		end
 	end
 	if State.storage then
-		detailButton("Store 1", 12, function()
+		detailButton("Store 1", 13, function()
 			action:FireServer("StorePut", uid, 1)
 		end)
-		detailButton("Store all", 13, function()
+		detailButton("Store all", 14, function()
 			action:FireServer("StorePut", uid, stack.count)
 		end)
 	end
-	detailButton("Drop 1", 14, function()
+	detailButton("Drop 1", 15, function()
 		action:FireServer("Drop", uid, 1)
 	end)
 	if stack.count > 1 then
-		detailButton("Drop all", 15, function()
+		detailButton("Drop all", 16, function()
 			action:FireServer("Drop", uid, stack.count)
 		end)
 	end
@@ -526,7 +538,7 @@ function Panel.init()
 		{ Modal = true, BackgroundTransparency = 1, Text = "", Size = UDim2.fromOffset(0, 0), Parent = root }
 	)
 
-	for index, entry in { { "inventory", "INVENTORY  [I]" }, { "crafting", "CRAFTING  [C]" } } do
+	for index, entry in { { "inventory", "INVENTORY  [TAB]" }, { "crafting", "CRAFTING  [C]" } } do
 		tabButtons[entry[1]] = Ui.button({
 			Text = entry[2],
 			FontFace = Theme.FontBold,
@@ -577,15 +589,25 @@ function Panel.init()
 		refresh()
 	end)
 
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then
-			return
+	-- Bound through ContextActionService at high priority: Roblox's camera claims the I key
+	-- for zooming, so a plain InputBegan listener never sees it.
+	ContextActionService:BindActionAtPriority("GreyfallPanel", function(_, inputState, input)
+		if inputState ~= Enum.UserInputState.Begin then
+			return Enum.ContextActionResult.Pass
 		end
-		if input.KeyCode == Enum.KeyCode.I then
+		if UserInputService:GetFocusedTextBox() then
+			return Enum.ContextActionResult.Pass
+		end
+		if input.KeyCode == Enum.KeyCode.Tab or input.KeyCode == Enum.KeyCode.I then
 			Panel.toggle("inventory")
 		elseif input.KeyCode == Enum.KeyCode.C then
 			Panel.toggle("crafting")
-		elseif input.KeyCode == Enum.KeyCode.Escape and root.Visible then
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.High.Value + 10, Enum.KeyCode.Tab, Enum.KeyCode.I, Enum.KeyCode.C)
+
+	UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.Escape and root.Visible then
 			Panel.close()
 		end
 	end)

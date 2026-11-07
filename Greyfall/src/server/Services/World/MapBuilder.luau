@@ -3,11 +3,14 @@
 
 local Terrain = require(script.Parent.Terrain)
 local Structures = require(script.Parent.Structures)
+local Decor = require(script.Parent.Decor)
 local Maps = script.Parent.Maps
 
 local MapBuilder = {}
 
 local V = Vector3.new
+
+local decorateTown -- defined below, used by layoutTown
 
 -- Buildings each kind of town receives, placed from the centre outwards.
 local PLANS = {
@@ -34,6 +37,165 @@ local function planFor(town)
 		return PLANS.militarySmall
 	end
 	return PLANS[town.kind] or PLANS.village
+end
+
+-- Building footprints that get a fenced yard and a mailbox.
+local YARDS = {
+	house = { w = 26, d = 20 },
+	large_house = { w = 34, d = 26 },
+	cabin = { w = 18, d = 14 },
+}
+local MAILBOX_COLORS = { Color3.fromRGB(60, 70, 80), Color3.fromRGB(120, 50, 45), Color3.fromRGB(70, 80, 60) }
+
+local function addYard(ctx, field, parent: Instance, base: CFrame, yard)
+	local rng = ctx.rng
+	local hw, hd = yard.w / 2 + 3, yard.d / 2 + 4
+	local corners = {
+		base * CFrame.new(-hw, 0, -hd + 6),
+		base * CFrame.new(-hw, 0, hd),
+		base * CFrame.new(hw, 0, hd),
+		base * CFrame.new(hw, 0, -hd + 6),
+	}
+	-- Side and back fences; the front stays open toward the road.
+	for i = 1, 3 do
+		local a, b = corners[i].Position, corners[i + 1].Position
+		local mid = (a + b) / 2
+		if field:roadDistance(mid.X, mid.Z) > Terrain.RoadHalfWidth + 3 and rng:NextNumber() < 0.8 then
+			Decor.fence(parent, a, b)
+		end
+	end
+	local mailbox = base * CFrame.new(hw - 2, 0, -hd - 1)
+	local spot = mailbox.Position
+	if field:roadDistance(spot.X, spot.Z) > Terrain.RoadHalfWidth + 1 then
+		Decor.mailbox(parent, mailbox, MAILBOX_COLORS[rng:NextInteger(1, #MAILBOX_COLORS)])
+	end
+end
+
+local function clearOf(placed, x: number, z: number, radius: number): boolean
+	for _, other in placed do
+		if math.sqrt((x - other.x) ^ 2 + (z - other.z) ^ 2) < other.fp + radius then
+			return false
+		end
+	end
+	return true
+end
+
+-- Street furniture, parked cars, fields, piers and military clutter for one town.
+function decorateTown(ctx, field, town, folder: Instance, placed)
+	local rng = ctx.rng
+	local urban = town.kind == "town" or town.kind == "city" or town.kind == "village"
+
+	-- Walk every road that passes through the town.
+	for _, road in field.roads do
+		local dx, dz = (road.bx - road.ax) / road.length, (road.bz - road.az) / road.length
+		local side = 1
+		for s = 0, road.length, 18 do
+			local cx, cz = road.ax + dx * s, road.az + dz * s
+			if math.sqrt((cx - town.x) ^ 2 + (cz - town.z) ^ 2) < town.radius - 10 then
+				local step = math.floor(s / 18)
+				side = -side
+				local nx, nz = -dz * side, dx * side -- unit vector across the road
+				local function spot(offset: number): (number, number)
+					return cx + nx * offset, cz + nz * offset
+				end
+				if urban and step % 2 == 0 then
+					local lx, lz = spot(Terrain.RoadHalfWidth + 2)
+					if clearOf(placed, lx, lz, 2) then
+						local ground = V(lx, field:height(lx, lz), lz)
+						Decor.streetLamp(folder, CFrame.lookAt(ground, ground - V(nx, 0, nz)))
+					end
+				end
+				if urban and rng:NextNumber() < 0.3 then
+					local px, pz = spot(Terrain.RoadHalfWidth - 2.5)
+					local yaw = math.atan2(-dx, -dz) + (if rng:NextNumber() < 0.5 then 0 else math.pi)
+					Structures.carWreck(
+						ctx,
+						folder,
+						CFrame.new(px, field:height(px, pz), pz) * CFrame.Angles(0, yaw, 0)
+					)
+				elseif urban and rng:NextNumber() < 0.25 then
+					local bx, bz = spot(Terrain.RoadHalfWidth + 4)
+					if clearOf(placed, bx, bz, 3) then
+						local ground = V(bx, field:height(bx, bz), bz)
+						if rng:NextNumber() < 0.6 then
+							Decor.bench(folder, CFrame.lookAt(ground, ground - V(nx, 0, nz)))
+						else
+							Decor.trashBin(folder, ground)
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if town.kind == "farm" then
+		for _ = 1, 6 do
+			local angle = rng:NextNumber(0, math.pi * 2)
+			local distance = rng:NextNumber(10, town.radius - 10)
+			local hx, hz = town.x + math.cos(angle) * distance, town.z + math.sin(angle) * distance
+			if clearOf(placed, hx, hz, 3) and field:roadDistance(hx, hz) > Terrain.RoadHalfWidth + 3 then
+				Decor.hayBale(folder, V(hx, field:height(hx, hz), hz), rng:NextNumber(0, math.pi))
+			end
+		end
+		-- Crop fields just outside the farm, on flat ground away from roads.
+		local fields = 0
+		for _ = 1, 24 do
+			if fields >= 4 then
+				break
+			end
+			local angle = rng:NextNumber(0, math.pi * 2)
+			local distance = town.radius + rng:NextNumber(30, 80)
+			local fx, fz = town.x + math.cos(angle) * distance, town.z + math.sin(angle) * distance
+			local h = field:height(fx, fz)
+			local flat = math.abs(field:height(fx + 20, fz) - h)
+				+ math.abs(field:height(fx, fz + 15) - h)
+				+ math.abs(field:height(fx - 20, fz) - h)
+				+ math.abs(field:height(fx, fz - 15) - h)
+			if h > 3 and flat < 6 and field:roadDistance(fx, fz) > 32 and not field:townAt(fx, fz, 25) then
+				local yaw = rng:NextNumber(0, math.pi)
+				Decor.cropField(folder, CFrame.new(fx, h, fz) * CFrame.Angles(0, yaw, 0), 40, 28, rng)
+				fields += 1
+			end
+		end
+	end
+
+	if town.kind == "village" then
+		-- Find the nearest water and run a pier out from the shore.
+		for i = 0, 23 do
+			local angle = i / 24 * math.pi * 2
+			local dirX, dirZ = math.cos(angle), math.sin(angle)
+			local shore
+			for r = town.radius * 0.6, town.radius + 160, 6 do
+				local x, z = town.x + dirX * r, town.z + dirZ * r
+				if field:height(x, z) < 0.5 then
+					shore = r
+					break
+				end
+			end
+			if shore then
+				local startR = shore - 8
+				local sx, sz = town.x + dirX * startR, town.z + dirZ * startR
+				Decor.pier(folder, V(sx, field:height(sx, sz), sz), V(dirX, 0, dirZ), 44, rng)
+				break
+			end
+		end
+	end
+
+	if town.kind == "military" then
+		for _ = 1, (if town.small then 2 else 4) do
+			local angle = rng:NextNumber(0, math.pi * 2)
+			local distance = rng:NextNumber(15, town.radius - 20)
+			local x, z = town.x + math.cos(angle) * distance, town.z + math.sin(angle) * distance
+			if clearOf(placed, x, z, 6) and field:roadDistance(x, z) > Terrain.RoadHalfWidth + 4 then
+				local base = CFrame.new(x, town.baseY, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+				if rng:NextNumber() < 0.5 then
+					Decor.tent(folder, base)
+				else
+					Decor.sandbags(folder, base, 10)
+				end
+			end
+		end
+	end
 end
 
 local function layoutTown(ctx, field, town, parent: Instance)
@@ -96,8 +258,13 @@ local function layoutTown(ctx, field, town, parent: Instance)
 
 					local model = Instance.new("Model")
 					model.Name = typeName
-					buildingType.build(ctx, model, CFrame.lookAt(position, target), { military = military })
+					local base = CFrame.lookAt(position, target)
+					buildingType.build(ctx, model, base, { military = military })
 					model.Parent = folder
+					local yard = YARDS[typeName]
+					if yard then
+						addYard(ctx, field, folder, base, yard)
+					end
 					break
 				end
 			end
@@ -115,6 +282,28 @@ local function layoutTown(ctx, field, town, parent: Instance)
 			local mid = (p0 + p1) / 2
 			if field:roadDistance(mid.X, mid.Z) > 16 then
 				Structures.fence(folder, p0, p1)
+			end
+		end
+	end
+
+	decorateTown(ctx, field, town, folder, placed)
+end
+
+-- Power poles along roads between towns.
+local function placePoles(field, parent: Instance)
+	for _, road in field.roads do
+		local dx, dz = (road.bx - road.ax) / road.length, (road.bz - road.az) / road.length
+		for s = 30, road.length - 30, 55 do
+			local x = road.ax + dx * s - dz * (Terrain.RoadHalfWidth + 5)
+			local z = road.az + dz * s + dx * (Terrain.RoadHalfWidth + 5)
+			if not field:townAt(x, z, 5) then
+				local y = field:height(x, z)
+				if y > 1 then
+					Decor.powerPole(
+						parent,
+						CFrame.new(x, y, z) * CFrame.Angles(0, math.atan2(-dx, -dz) + math.pi / 2, 0)
+					)
+				end
 			end
 		end
 	end
@@ -171,6 +360,18 @@ local function placeNature(ctx, field, def, parent: Instance)
 				end
 				Structures.tree(ctx, trees, V(x, h, z), kind)
 			end
+		end
+	end
+
+	local bushes = Instance.new("Folder")
+	bushes.Name = "Bushes"
+	bushes.Parent = parent
+	for _ = 1, math.floor(def.treeAttempts * 0.6) do
+		local x = rng:NextNumber(-half + 20, half - 20)
+		local z = rng:NextNumber(-half + 20, half - 20)
+		local h = field:height(x, z)
+		if h > 2.5 and h < def.snowline - 4 and field:roadDistance(x, z) > 10 and not field:townAt(x, z, 6) then
+			Decor.bush(bushes, V(x, h, z), rng)
 		end
 	end
 
@@ -269,6 +470,7 @@ function MapBuilder.build(mapId: string, onProgress: ((string) -> ())?)
 	wrecks.Name = "Wrecks"
 	wrecks.Parent = root
 	placeWrecks(ctx, field, wrecks)
+	placePoles(field, wrecks)
 	progress("Growing forests")
 	placeNature(ctx, field, def, root)
 	placeBoundary(field, root)

@@ -32,13 +32,14 @@ local SECTIONS = {
 			{ "Hold left click", "Automatic fire" },
 			{ "R", "Reload" },
 			{ "1 to 5", "Equip hotbar slot, again to put away" },
+			{ "Left click", "Use the equipped bandage, food or drink" },
 		},
 	},
 	{
 		title = "ITEMS",
 		keys = {
 			{ "F", "Pick up, open doors and storage" },
-			{ "I", "Inventory" },
+			{ "Tab or I", "Inventory" },
 			{ "C", "Crafting" },
 			{ "Escape", "Close the panel" },
 		},

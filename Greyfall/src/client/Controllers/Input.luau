@@ -85,6 +85,11 @@ local function primary()
 				attack:FireServer("Fire", direction)
 			end
 		end
+	elseif Items.isConsumable(def) then
+		if stack and now - lastShot >= 0.6 then
+			lastShot = now
+			action:FireServer("Use", stack.uid)
+		end
 	elseif def.category == "Structure" then
 		local input = Build.input
 		if input and stack then

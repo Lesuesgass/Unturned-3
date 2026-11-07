@@ -184,8 +184,8 @@ function PlayerState.add(player: Player, id: string, count: number, mag: number?
 		remaining -= take
 		added += take
 
-		-- Weapons and tools go straight into a free hotbar slot.
-		if Items.isEquippable(def) then
+		-- Weapons, tools and medical supplies go straight into a free hotbar slot.
+		if Items.isEquippable(def) or def.category == "Medical" then
 			for slot = 1, HOTBAR_SIZE do
 				if state.hotbar[slot] == "" then
 					state.hotbar[slot] = stack.uid

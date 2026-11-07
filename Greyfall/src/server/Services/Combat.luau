@@ -119,7 +119,10 @@ local function melee(player: Player, state, def, direction: Vector3)
 	character:SetAttribute("SwingAt", workspace:GetServerTimeNow())
 
 	local origin = head.Position
-	Effects.sound("MeleeSwing", origin)
+	local punching = def == Items.Fists
+	local swingSound = if punching and Config.Sounds.PunchSwing ~= "" then "PunchSwing" else "MeleeSwing"
+	local hitSound = if punching and Config.Sounds.PunchHit ~= "" then "PunchHit" else "MeleeHit"
+	Effects.sound(swingSound, origin)
 	local result = workspace:Spherecast(origin, 1.2, direction * def.range, hitParams(character))
 	if not result then
 		return
@@ -133,7 +136,7 @@ local function melee(player: Player, state, def, direction: Vector3)
 		end
 		if Combat.damageHumanoid(player, humanoid, amount, false, def.bleedChance) then
 			Effects.impact(result.Position, true)
-			Effects.sound("MeleeHit", result.Position)
+			Effects.sound(hitSound, result.Position)
 		end
 	elseif Resources.isResource(hit) then
 		Resources.harvest(player, hit :: BasePart, def)

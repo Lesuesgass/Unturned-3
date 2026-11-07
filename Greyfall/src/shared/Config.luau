@@ -167,11 +167,17 @@ Config.DayNight = {
 
 -- Sound ids. Leave a value empty to play nothing. A list picks one at random each time.
 -- Upload or pick your own sounds in the Creator Store and paste their ids here as
--- "rbxassetid://123456". The zombie sounds are community uploads from the Creator Store;
--- listen to them in Studio and replace any you do not like.
+-- "rbxassetid://123456". The zombie entries below are community uploads from the Creator Store.
+-- Sounds uploaded by other creators only play if they made them public, so the reliable
+-- option is to upload the original files in the sounds folder (zombie_groan_1 to 3 and
+-- zombie_attack_1 and 2) from your own account and put those ids here instead.
 Config.Sounds = {
 	MeleeSwing = "rbxasset://sounds/swordslash.wav",
 	MeleeHit = "rbxasset://sounds/swordlunge.wav",
+	-- Upload sounds/punch_swing.ogg and sounds/punch_hit.ogg (made for this game) and paste
+	-- their ids here. Until then punches use the melee sounds above.
+	PunchSwing = "",
+	PunchHit = "",
 	PistolShot = "",
 	ShotgunShot = "",
 	RifleShot = "",

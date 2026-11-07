@@ -24,14 +24,25 @@ local Menu = require(Controllers.Menu)
 local ZombieAnimator = require(Controllers.ZombieAnimator)
 local Fists = require(Controllers.Fists)
 
-Menu.init()
-State.init()
-Hud.init()
-Panel.init()
-Interaction.init()
-Build.init()
-Effects.init()
-InputController.init()
-Keybinds.init()
-Fists.init()
-task.spawn(ZombieAnimator.init)
+-- Each controller starts on its own, so one failing (and printing its error in the Output
+-- window) cannot stop the others.
+local function start(name: string, init: () -> ())
+	task.spawn(function()
+		local ok, err = xpcall(init, debug.traceback)
+		if not ok then
+			warn(`[Greyfall] {name} failed to start: {err}`)
+		end
+	end)
+end
+
+start("Menu", Menu.init)
+start("State", State.init)
+start("Hud", Hud.init)
+start("Panel", Panel.init)
+start("Interaction", Interaction.init)
+start("Build", Build.init)
+start("Effects", Effects.init)
+start("Input", InputController.init)
+start("Keybinds", Keybinds.init)
+start("Fists", Fists.init)
+start("ZombieAnimator", ZombieAnimator.init)

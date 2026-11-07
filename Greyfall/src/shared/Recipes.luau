@@ -30,6 +30,7 @@ end
 
 -- Survival
 add("Survival", "bandage", 1, { { "cloth", 2 } })
+add("Survival", "dressing", 1, { { "cloth", 3 }, { "bandage", 1 } })
 add("Survival", "cloth_satchel", 1, { { "cloth", 6 } })
 
 -- Tools and weapons

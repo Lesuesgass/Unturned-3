@@ -71,8 +71,9 @@ function Equipment.refresh(player: Player)
 	if not stack then
 		return
 	end
+	-- Anything in the hotbar can be held; consumables are used with a click.
 	local def = Items.get(stack.id)
-	if def and Items.isEquippable(def) then
+	if def then
 		local tool = makeTool(def)
 		tool.Parent = character
 	end

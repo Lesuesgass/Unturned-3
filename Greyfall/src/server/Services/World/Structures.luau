@@ -8,6 +8,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(ReplicatedStorage.Shared.Theme)
+local Furniture = require(script.Parent.Furniture)
 
 local Structures = {}
 
@@ -243,6 +244,12 @@ function Structures.box(ctx, model: Instance, base: CFrame, spec)
 		local lz = rng:NextNumber(-d / 2 + 3, d / 2 - 3)
 		addLoot(ctx, (base * CFrame.new(lx, floorTop + 0.05, lz)).Position, spec.lootTable)
 	end
+
+	-- Clear terrain poking up through the floor, then furnish the room.
+	workspace.Terrain:FillBlock(base * CFrame.new(0, floorTop + h / 2, 0), V(w - 2, h + 1.2, d - 2), Enum.Material.Air)
+	if spec.interior then
+		Furniture.furnish(ctx, model, base * CFrame.new(0, floorTop, 0), spec.interior, w, d, spec.lootTable)
+	end
 end
 
 local function verticalCylinder(
@@ -309,7 +316,8 @@ Structures.Types = {
 				right = { Window(0) },
 				roof = "gable",
 				roofH = 6,
-				loot = 4,
+				loot = 2,
+				interior = "house",
 				lootTable = info.lootTable or "Residential",
 			})
 		end,
@@ -405,6 +413,24 @@ Structures.Types = {
 				Color = C(105, 85, 65),
 				Material = M.WoodPlanks,
 			})
+			-- Railing around the stairwell, open at the back where the stairs arrive.
+			local railY = slabY + 0.5 + 1.5
+			local gapFront = d / 2 - 1 - stairLength
+			local railColor = C(90, 70, 52)
+			newPart("Part", model, {
+				Name = "Railing",
+				Size = V(gapX - (-w / 2 + 1), 3, 0.3),
+				CFrame = base * CFrame.new((gapX + (-w / 2 + 1)) / 2, railY, gapFront),
+				Color = railColor,
+				Material = M.Wood,
+			})
+			newPart("Part", model, {
+				Name = "Railing",
+				Size = V(0.3, 3, stairLength - 4),
+				CFrame = base * CFrame.new(gapX, railY, gapFront + (stairLength - 4) / 2),
+				Color = railColor,
+				Material = M.Wood,
+			})
 
 			local upperY = slabY + 0.5
 			storey(upperY, upperH, {
@@ -439,16 +465,25 @@ Structures.Types = {
 				Material = M.Slate,
 			})
 
-			for _ = 1, 4 do
+			for _ = 1, 2 do
 				local lx = rng:NextNumber(-w / 2 + 9, w / 2 - 3)
 				local lz = rng:NextNumber(-d / 2 + 3, d / 2 - 3)
 				addLoot(ctx, (base * CFrame.new(lx, floorTop + 0.05, lz)).Position, lootTable)
 			end
-			for _ = 1, 4 do
+			for _ = 1, 2 do
 				local lx = rng:NextNumber(gapX + 2, w / 2 - 3)
 				local lz = rng:NextNumber(-d / 2 + 3, d / 2 - 3)
 				addLoot(ctx, (base * CFrame.new(lx, upperY + 0.05, lz)).Position, lootTable)
 			end
+
+			-- Clear terrain inside, then furnish both floors.
+			workspace.Terrain:FillBlock(
+				base * CFrame.new(0, floorTop + groundH / 2, 0),
+				V(w - 2, groundH + 1.2, d - 2),
+				Enum.Material.Air
+			)
+			Furniture.furnish(ctx, model, base * CFrame.new(0, floorTop, 0), "large_ground", w, d, lootTable)
+			Furniture.furnish(ctx, model, base * CFrame.new(0, upperY, 0), "large_upper", w, d, lootTable)
 		end,
 	},
 	cabin = {
@@ -468,7 +503,8 @@ Structures.Types = {
 				roof = "gable",
 				roofH = 5,
 				roofColor = C(60, 55, 50),
-				loot = 2,
+				loot = 1,
+				interior = "cabin",
 				lootTable = info.lootTable or "Residential",
 			})
 		end,
@@ -485,7 +521,8 @@ Structures.Types = {
 				front = { Gap(0, 6, 6.5) },
 				roof = "flat",
 				roofColor = C(90, 88, 84),
-				loot = 1,
+				loot = 0,
+				interior = "shed",
 				lootTable = info.lootTable or "Farm",
 			})
 		end,
@@ -508,7 +545,8 @@ Structures.Types = {
 				roofH = 9,
 				roofColor = C(80, 75, 70),
 				roofMaterial = M.CorrodedMetal,
-				loot = 3,
+				loot = 2,
+				interior = "barn",
 				lootTable = "Farm",
 			})
 		end,
@@ -526,7 +564,8 @@ Structures.Types = {
 				back = { Door(12) },
 				roof = "flat",
 				sign = "GENERAL STORE",
-				loot = 5,
+				loot = 2,
+				interior = "store",
 				lootTable = "Store",
 			})
 		end,
@@ -545,7 +584,8 @@ Structures.Types = {
 				right = { Window(-4), Window(5) },
 				roof = "flat",
 				sign = "CLINIC",
-				loot = 4,
+				loot = 2,
+				interior = "clinic",
 				lootTable = "Medical",
 			})
 		end,
@@ -565,7 +605,8 @@ Structures.Types = {
 				right = { Window(0) },
 				roof = "flat",
 				sign = "POLICE",
-				loot = 4,
+				loot = 2,
+				interior = "police",
 				lootTable = "Police",
 			})
 		end,
@@ -584,7 +625,8 @@ Structures.Types = {
 				right = { Window(0, 8, 10, 13) },
 				roof = "flat",
 				roofColor = C(85, 85, 80),
-				loot = 5,
+				loot = 2,
+				interior = "warehouse",
 				lootTable = info.military and "Military" or "Industrial",
 			})
 		end,
@@ -602,7 +644,8 @@ Structures.Types = {
 				back = { Window(-10), Window(0), Window(10) },
 				roof = "flat",
 				roofColor = C(80, 82, 70),
-				loot = 4,
+				loot = 2,
+				interior = "barracks",
 				lootTable = "Military",
 			})
 		end,

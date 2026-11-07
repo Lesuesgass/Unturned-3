@@ -87,7 +87,7 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
 | R | Reload |
 | 1 to 5 | Equip a hotbar slot, press again to put it away |
 | F | Pick up, open doors, open your storage |
-| I | Inventory |
+| Tab or I | Inventory |
 | C | Crafting |
 | X | Salvage your own structure (hammer equipped) |
 | V | First or third person |
@@ -106,6 +106,12 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
 * **Bleeding** can start from a zombie or weapon hit (see Difficulty) and drains health until
   you use a bandage or medkit.
 * **Fists**: with nothing equipped, left click punches. A zombie goes down in 5 to 6 punches.
+  In first person your fists come up into view for a moment with every punch.
+* **Hotbar**: any item can go in a hotbar slot (pick a slot number in the inventory). Weapons
+  and tools are held; bandages, dressings, food and drinks are used with a left click.
+  Medical items fill a free slot automatically when picked up.
+* **Bandage** heals 15 and stops bleeding (2 cloth). **Dressing** heals 30 and stops bleeding
+  (3 cloth and a bandage).
 * **Carry weight** is 12 kg, plus whatever your worn backpack adds.
 * Death drops everything you carried where you fell.
 
@@ -117,8 +123,16 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
   valley town, a river village, farms, a fenced military base, a forest hamlet, a mountain pass
   village and a lodge up in the eastern mountains.
 
-Towns include **large houses**: two storeys with an inside staircase and eight loot spots,
-twice as many as a regular house.
+Towns include **large houses**: two storeys with an inside staircase and a railed stairwell.
+
+Every building is furnished: beds, tables, chairs, kitchen counters, fridges, sofas, shelves,
+wardrobes, store aisles, hospital beds, police lockers, bunk beds, warehouse racks, crates,
+barrels and workbenches. Loot sits on the furniture as well as on the floor.
+
+Outside, houses have fenced yards and mailboxes, town streets have lamp posts that light up at
+night, parked cars, benches and bins, roads between towns are lined with power poles, farms
+have hay bales and fenced crop fields, fishing villages have a pier with moored boats, the
+military bases have tents and sandbag walls, and bushes fill the countryside.
 
 Each town has its own loot (residential, store, medical, police, military, industrial, farm,
 vehicle wrecks) and its own zombie zone. Zones fill up when players come near and empty after
@@ -215,6 +229,13 @@ They groan now and then (every 10 to 25 seconds, only within 60 studs, at most t
 once, at low volume) and make a sound when they attack.
 
 ## Sounds
+
+The `sounds` folder holds original sound effects made for this game (the script that generates
+them, `make_sfx.py`, is next to them): three zombie groans, two zombie attacks, a punch swing
+and a punch hit. To use them, upload each `.ogg` file from the Roblox Creator Dashboard
+(Creations, Audio) or from Studio's Asset Manager, then paste the ids into `Config.Sounds`
+(`ZombieGroan`, `ZombieAttack`, `PunchSwing`, `PunchHit`). Sounds uploaded by your own account
+always play in your own game.
 
 Sound ids are in `Config.Sounds`. Any entry can be a list; one is picked at random each time.
 Empty entries play nothing. Upload your own sounds or pick ones from the Creator Store and

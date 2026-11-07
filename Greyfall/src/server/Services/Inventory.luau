@@ -252,9 +252,7 @@ function handlers.Assign(player, state, uid, slot)
 		return
 	end
 	local stack = PlayerState.findStack(state, uid)
-	local def = stack and Items.get(stack.id)
-	if not def or not Items.isEquippable(def) then
-		PlayerState.notify(player, "Only weapons, tools and building pieces go in the hotbar")
+	if not stack then
 		return
 	end
 	local existing = table.find(state.hotbar, uid)

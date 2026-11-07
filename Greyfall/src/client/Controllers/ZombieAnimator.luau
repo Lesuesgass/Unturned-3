@@ -1,6 +1,7 @@
 -- Draws the zombies' shambling walk on this client and plays their voices.
 --
--- Zombies carry no animations on the server. Each client poses their joints every frame:
+-- Zombies carry no animations on the server. Each client poses their joints every frame
+-- (through each joint's C0, on top of its original offset):
 -- hunched torso, arms reaching forward, head tilted, one good leg and one stiff leg that
 -- drags behind, with the body dipping on every step. Only zombies near the camera are
 -- posed, so a crowded map costs little.
@@ -66,10 +67,11 @@ local function register(model: Instance)
 	if not model:IsA("Model") or zombies[model] then
 		return
 	end
-	local motors = {}
+	local motors, bases = {}, {}
 	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("Motor6D") then
 			motors[descendant.Name] = descendant
+			bases[descendant.Name] = descendant.C0
 		end
 	end
 	if not motors.LeftHip or not motors.RightHip then
@@ -78,6 +80,7 @@ local function register(model: Instance)
 	local record = {
 		model = model,
 		motors = motors,
+		bases = bases,
 		root = model:FindFirstChild("HumanoidRootPart"),
 		head = model:FindFirstChild("Head"),
 		phase = rng:NextNumber(0, math.pi * 2),
@@ -103,6 +106,7 @@ end
 
 local function pose(record, dt: number, now: number, serverNow: number)
 	local motors = record.motors
+	local bases = record.bases
 	local root: BasePart = record.root
 	local velocity = root.AssemblyLinearVelocity
 	local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
@@ -127,9 +131,11 @@ local function pose(record, dt: number, now: number, serverNow: number)
 		badHip = rx((-0.22 + s * 0.12) * moving) * CFrame.Angles(0, -0.35, 0)
 	end
 	local function set(name: string, value: CFrame)
+		-- The pose is applied on top of the joint's original offset. Changing C0 locally is
+		-- drawn reliably for characters this client does not simulate.
 		local motor = motors[name]
 		if motor then
-			motor.Transform = value
+			motor.C0 = bases[name] * value
 		end
 	end
 	set(good .. "Hip", goodHip)
@@ -176,7 +182,11 @@ function ZombieAnimator.init()
 			if distance < ANIMATE_DISTANCE then
 				local humanoid = model:FindFirstChildOfClass("Humanoid")
 				if humanoid and humanoid.Health > 0 then
-					pose(record, dt, now, serverNow)
+					local ok, err = pcall(pose, record, dt, now, serverNow)
+					if not ok and not record.reported then
+						record.reported = true
+						warn("[Greyfall] zombie pose failed:", err)
+					end
 					if distance < Voice.MaxDistance and now > record.nextVoice then
 						record.nextVoice = now + rng:NextNumber(Voice.MinInterval, Voice.MaxInterval)
 						playVoice(record, "ZombieGroan")

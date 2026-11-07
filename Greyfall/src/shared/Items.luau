@@ -132,6 +132,16 @@ local defs: { [string]: any } = {
 		description = "Stops bleeding and restores some health.",
 		model = { size = V(0.6, 0.4, 0.6), color = C(215, 210, 195), material = Enum.Material.Fabric },
 	},
+	dressing = {
+		name = "Dressing",
+		category = "Medical",
+		weight = 0.15,
+		maxStack = 4,
+		health = 30,
+		stopsBleeding = true,
+		description = "A thick sterile dressing. Stops bleeding and restores more health than a bandage.",
+		model = { size = V(0.8, 0.4, 0.7), color = C(225, 222, 210), material = Enum.Material.Fabric },
+	},
 	medkit = {
 		name = "Medkit",
 		category = "Medical",
