@@ -1,6 +1,7 @@
 -- Draws tracers and impacts and plays positional sounds announced by the server.
 
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -68,6 +69,92 @@ local function sound(key: string, position: Vector3)
 	Debris:AddItem(attachment, 6)
 end
 
+local function arc(from: Vector3, to: Vector3)
+	-- A jagged bolt: a few neon segments with random kinks, gone in a blink.
+	local points = { from }
+	local segments = 6
+	for i = 1, segments - 1 do
+		local t = i / segments
+		local jitter = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 2.2
+		table.insert(points, from:Lerp(to, t) + jitter)
+	end
+	table.insert(points, to)
+	for i = 1, #points - 1 do
+		local a, b = points[i], points[i + 1]
+		local length = (b - a).Magnitude
+		local bolt = Instance.new("Part")
+		bolt.Anchored = true
+		bolt.CanCollide = false
+		bolt.CanQuery = false
+		bolt.CanTouch = false
+		bolt.CastShadow = false
+		bolt.Material = Enum.Material.Neon
+		bolt.Color = Color3.fromRGB(150, 225, 255)
+		bolt.Size = Vector3.new(0.15, 0.15, length)
+		bolt.CFrame = CFrame.lookAt(a, b) * CFrame.new(0, 0, -length / 2)
+		bolt.Parent = workspace.CurrentCamera
+		Debris:AddItem(bolt, 0.15)
+	end
+	local flash = Instance.new("Part")
+	flash.Anchored = true
+	flash.CanCollide = false
+	flash.CanQuery = false
+	flash.Transparency = 1
+	flash.Size = Vector3.one
+	flash.CFrame = CFrame.new(to)
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(150, 225, 255)
+	light.Range = 16
+	light.Brightness = 4
+	light.Parent = flash
+	flash.Parent = workspace.CurrentCamera
+	Debris:AddItem(flash, 0.12)
+end
+
+local function shockwave(position: Vector3, radius: number)
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.SmoothPlastic
+	ring.Color = Color3.fromRGB(120, 105, 85)
+	ring.Transparency = 0.3
+	ring.Size = Vector3.new(0.4, 2, 2)
+	ring.CFrame = CFrame.new(position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+	ring.Parent = workspace.CurrentCamera
+	TweenService:Create(ring, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.4, radius * 2, radius * 2),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.5)
+	-- Shake the camera of anyone close by.
+	local camera = workspace.CurrentCamera
+	local distance = (camera.CFrame.Position - position).Magnitude
+	if distance < radius * 3 then
+		local strength = (1 - distance / (radius * 3)) * 0.6
+		task.spawn(function()
+			for i = 1, 10 do
+				local s = strength * (1 - i / 10)
+				camera.CFrame *= CFrame.Angles((math.random() - 0.5) * s * 0.1, (math.random() - 0.5) * s * 0.1, 0)
+				task.wait()
+			end
+		end)
+	end
+end
+
+local function knockback(velocity: Vector3)
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root and root:IsA("BasePart") and humanoid then
+		humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+		root.AssemblyLinearVelocity = velocity
+	end
+end
+
 function Effects.init()
 	Net.get("Effect").OnClientEvent:Connect(function(kind, a, b)
 		if kind == "Tracer" then
@@ -76,6 +163,12 @@ function Effects.init()
 			impact(a, b)
 		elseif kind == "Sound" then
 			sound(a, b)
+		elseif kind == "Arc" then
+			arc(a, b)
+		elseif kind == "Shockwave" then
+			shockwave(a, b)
+		elseif kind == "Knockback" then
+			knockback(a)
 		end
 	end)
 end

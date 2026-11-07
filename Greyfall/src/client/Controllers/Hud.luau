@@ -16,6 +16,8 @@ local State = require(script.Parent.State)
 
 local Hud = {}
 
+local updateBossBar -- defined below
+
 local player = Players.LocalPlayer
 local gui: ScreenGui
 local bars = {}
@@ -333,6 +335,69 @@ end
 
 local lastHealth = 100
 
+-- Boss health bar across the top of the screen while a Behemoth is close.
+local bossFrame: Frame
+local bossFill: Frame
+local bossLabel: TextLabel
+
+local function buildBossBar()
+	bossFrame = Ui.new("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 48),
+		Size = UDim2.fromOffset(420, 30),
+		Visible = false,
+		Parent = gui,
+	})
+	bossLabel = Ui.label({
+		Text = "BEHEMOTH",
+		FontFace = Theme.FontBold,
+		TextSize = Theme.SmallTextSize + 1,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 16),
+		Parent = bossFrame,
+	})
+	local track = Ui.new("Frame", {
+		BackgroundColor3 = Theme.PanelLight,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(0, 20),
+		Size = UDim2.new(1, 0, 0, 7),
+		Parent = bossFrame,
+	})
+	Ui.stroke(0.4).Parent = track
+	bossFill = Ui.new(
+		"Frame",
+		{ BackgroundColor3 = Theme.Danger, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), Parent = track }
+	)
+end
+
+function updateBossBar()
+	local zombies = workspace:FindFirstChild("Zombies")
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local shown = false
+	if zombies and root then
+		for _, model in zombies:GetChildren() do
+			if model:GetAttribute("ZombieType") == "Behemoth" then
+				local humanoid = model:FindFirstChildOfClass("Humanoid")
+				local bossRoot = model:FindFirstChild("HumanoidRootPart")
+				if
+					humanoid
+					and humanoid.Health > 0
+					and bossRoot
+					and (bossRoot.Position - root.Position).Magnitude < 110
+				then
+					bossFill.Size = UDim2.fromScale(math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1), 1)
+					bossLabel.Text = string.format("BEHEMOTH   %d / %d", math.ceil(humanoid.Health), humanoid.MaxHealth)
+					shown = true
+					break
+				end
+			end
+		end
+	end
+	bossFrame.Visible = shown
+end
+
 local function watchCharacter(character: Model)
 	death.Visible = false
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
@@ -366,6 +431,7 @@ function Hud.init()
 	buildCentre()
 	buildCorner()
 	buildOverlays()
+	buildBossBar()
 
 	State.Changed:Connect(function()
 		refreshHotbar()
@@ -410,6 +476,14 @@ function Hud.init()
 		if player:GetAttribute("Bleeding") then
 			table.insert(status, "BLEEDING")
 		end
+		local serverNow = workspace:GetServerTimeNow()
+		if (player:GetAttribute("BurningUntil") or 0) > serverNow then
+			table.insert(status, "BURNING")
+		end
+		if (player:GetAttribute("ShockedUntil") or 0) > serverNow then
+			table.insert(status, "SHOCKED")
+		end
+		updateBossBar()
 		if values.Food <= 0 then
 			table.insert(status, "STARVING")
 		end

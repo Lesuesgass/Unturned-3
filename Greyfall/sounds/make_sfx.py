@@ -88,3 +88,37 @@ thump = np.sin(2 * np.pi * (95 * t - 70 * t * t)) * np.exp(-t * 22)
 slap = shaped_noise(n, 900, 4000) * np.exp(-t * 90)
 hit = thump * 1.0 + slap * 0.35 / (np.max(np.abs(slap)) + 1e-9)
 save("punch_hit", hit, peak_db=-4.0)
+
+# Behemoth roar: very low, long and rough, with a swelling attack.
+v = formant_voice(2.6, 70, 52, [(380, 160, 1.0), (820, 220, 0.6), (2200, 400, 0.15)], breath=0.5, jitter=0.04, rough=0.6)
+v *= envelope(len(v), 0.25, 1.0)
+save("boss_roar", v, peak_db=-3.0)
+
+# Behemoth slam: deep impact, then rubble.
+n = int(0.9 * SR)
+t = np.arange(n) / SR
+boom = np.sin(2 * np.pi * (55 * t - 25 * t * t)) * np.exp(-t * 6)
+rubble = shaped_noise(n, 150, 1500) * np.exp(-t * 7)
+save("boss_slam", boom + rubble / (np.max(np.abs(rubble)) + 1e-9) * 0.45, peak_db=-3.0)
+
+# Livewire zap: a buzzing electric snap.
+n = int(0.35 * SR)
+t = np.arange(n) / SR
+buzz = np.sign(np.sin(2 * np.pi * 120 * t)) * 0.4 + np.sign(np.sin(2 * np.pi * 243 * t)) * 0.25
+crack = shaped_noise(n, 2000, 9000)
+zap = (buzz + crack / (np.max(np.abs(crack)) + 1e-9) * 0.8) * np.exp(-t * 9) * (0.6 + 0.4 * (rng.random(n) > 0.4))
+save("zap", zap, peak_db=-7.0)
+
+# Fire crackle: a two second loop of soft roar with random pops (both ends fade to zero so it
+# loops cleanly).
+n = int(2.0 * SR)
+t = np.arange(n) / SR
+roar = shaped_noise(n, 120, 900) * 0.5
+pops = np.zeros(n)
+for _ in range(40):
+    start = rng.integers(0, n - 800)
+    length = rng.integers(80, 600)
+    pops[start:start + length] += shaped_noise(length, 1500, 6000)[:length] * rng.uniform(0.3, 1.0) * np.exp(-np.arange(length) / (length / 4))
+loop = roar / (np.max(np.abs(roar)) + 1e-9) * 0.4 + pops / (np.max(np.abs(pops)) + 1e-9)
+fade = np.minimum(1, np.minimum(t / 0.05, (t[-1] - t) / 0.05))
+save("fire_crackle", loop * fade, peak_db=-10.0)

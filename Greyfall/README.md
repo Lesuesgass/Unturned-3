@@ -220,6 +220,17 @@ weight and ownership before anything happens.
 
 ## Zombies
 
+There are four kinds, all with cube heads, pixel faces and glowing eyes:
+
+| Type | Look | What it does |
+|---|---|---|
+| Walker | Grey-green rot, torn clothes, blood stains, yellow eyes | The common shambler (about three in four zombies) |
+| Smoulderer | Charred black skin split by glowing embers, always on fire | Hits set you alight for 4 seconds (3 damage per second). Diving into water puts the fire out |
+| Livewire | Pale skin with glowing blue veins, crackling with sparks | Hits slow you and drain 30 stamina. Zaps you with an electric arc from up to 14 studs away |
+| Behemoth | A giant in scraps of riot armour with red eyes | The boss of military bases: 1500 health, heavy hits, a ground slam that throws players back and cracks player bases, and short charges at anyone keeping their distance. Drops three rolls of military loot and returns 10 minutes after it dies |
+
+A health bar appears at the top of the screen while a Behemoth is close.
+
 Zombies shamble: hunched over, arms reaching forward, head tilted, one stiff leg dragging
 behind with the body dipping on each step. They walk at 3 studs per second and chase at about
 10, so a player walking at 14 can get away. The walk is drawn by each player's own game
@@ -230,11 +241,10 @@ once, at low volume) and make a sound when they attack.
 
 ## Sounds
 
-The `sounds` folder holds original sound effects made for this game (the script that generates
-them, `make_sfx.py`, is next to them): three zombie groans, two zombie attacks, a punch swing
-and a punch hit. To use them, upload each `.ogg` file from the Roblox Creator Dashboard
+The `sounds` folder holds original sound effects made for this game (zombie groans and attacks, punch swing and hit, the Behemoth roar and slam, the Livewire zap and a looping fire crackle for Smoulderers). The script that generates them, `make_sfx.py`, is next to them. To use them, upload each `.ogg` file from the Roblox Creator Dashboard
 (Creations, Audio) or from Studio's Asset Manager, then paste the ids into `Config.Sounds`
-(`ZombieGroan`, `ZombieAttack`, `PunchSwing`, `PunchHit`). Sounds uploaded by your own account
+(`ZombieGroan`, `ZombieAttack`, `PunchSwing`, `PunchHit`, `BossRoar`, `BossSlam`, `Zap`,
+`FireCrackle`). Sounds uploaded by your own account
 always play in your own game.
 
 Sound ids are in `Config.Sounds`. Any entry can be a list; one is picked at random each time.

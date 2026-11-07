@@ -65,16 +65,30 @@ function Survival.weaponHit(player: Player, bleedChance: number?)
 	end
 end
 
-function Survival.zombieHit(player: Player, damage: number)
+-- A zombie hurt a player. typeName adds that type's effect (burning, shock).
+-- blast is true for hits that are not bites (Livewire zaps, Behemoth slams): those skip
+-- immunity loss and bleeding.
+function Survival.zombieHit(player: Player, damage: number, typeName: string?, blast: boolean?)
 	local humanoid = aliveHumanoid(player)
 	if not humanoid then
 		return
 	end
 	local rules = Settings.rules()
 	humanoid:TakeDamage(damage * rules.zombieDamageScale)
-	addStat(player, "Immunity", -Config.Zombies.ImmunityLossPerHit * rules.immunityLossScale)
-	if math.random() < Settings.bleedChance(nil) then
-		player:SetAttribute("Bleeding", true)
+	if not blast then
+		addStat(player, "Immunity", -Config.Zombies.ImmunityLossPerHit * rules.immunityLossScale)
+		if math.random() < Settings.bleedChance(nil) then
+			player:SetAttribute("Bleeding", true)
+		end
+	end
+	local def = typeName and Config.ZombieTypes[typeName]
+	local now = workspace:GetServerTimeNow()
+	if def and def.burnSeconds then
+		player:SetAttribute("BurningUntil", now + def.burnSeconds)
+	end
+	if def and def.shockSeconds then
+		player:SetAttribute("ShockedUntil", now + def.shockSeconds)
+		addStat(player, "Stamina", -def.shockStamina, S.StaminaMax)
 	end
 end
 
@@ -120,6 +134,10 @@ local function slowTick()
 			end
 			if oxygen <= 0 then
 				damage += S.SuffocateDamagePerSecond
+			end
+			local burningUntil = (player:GetAttribute("BurningUntil") or 0) :: number
+			if burningUntil > workspace:GetServerTimeNow() then
+				damage += Config.ZombieTypes.Smoulderer.burnDamagePerSecond
 			end
 			if player:GetAttribute("Bleeding") then
 				damage += S.BleedDamagePerSecond
@@ -170,13 +188,25 @@ local function fastTick(dt: number)
 			end
 			player:SetAttribute("Stamina", stamina)
 			player:SetAttribute("Sprinting", sprinting)
-			humanoid.WalkSpeed = if sprinting then Config.Player.SprintSpeed else Config.Player.WalkSpeed
+			local shocked = ((player:GetAttribute("ShockedUntil") or 0) :: number) > workspace:GetServerTimeNow()
+			if shocked then
+				sprinting = false
+				player:SetAttribute("Sprinting", false)
+			end
+			humanoid.WalkSpeed = if shocked
+				then Config.Player.WalkSpeed * 0.45
+				elseif sprinting then Config.Player.SprintSpeed
+				else Config.Player.WalkSpeed
 
 			-- Oxygen: drains with the head under water or high above sea level.
 			local head = humanoid.Parent and (humanoid.Parent :: Model):FindFirstChild("Head")
 			local headPosition = if head and head:IsA("BasePart") then head.Position else root.Position
 			local oxygen = (player:GetAttribute("Oxygen") or S.OxygenMax) :: number
-			if headUnderwater(headPosition) then
+			local underwater = headUnderwater(headPosition)
+			if underwater and player:GetAttribute("BurningUntil") then
+				player:SetAttribute("BurningUntil", 0) -- water puts the fire out
+			end
+			if underwater then
 				oxygen -= S.OxygenUnderwaterDrain * dt
 			elseif headPosition.Y > SEA_LEVEL + S.OxygenAltitude then
 				oxygen -= S.OxygenAltitudeDrain * dt

@@ -25,6 +25,21 @@ function Effects.tracer(from: Vector3, to: Vector3)
 	remote:FireAllClients("Tracer", from, to)
 end
 
+-- Electric arc between two points.
+function Effects.arc(from: Vector3, to: Vector3)
+	remote:FireAllClients("Arc", from, to)
+end
+
+-- Expanding ring on the ground, used by the Behemoth slam.
+function Effects.shockwave(position: Vector3, radius: number)
+	remote:FireAllClients("Shockwave", position, radius)
+end
+
+-- Pushes one player. Characters are simulated by their own client, so the client applies it.
+function Effects.knockback(player: Player, velocity: Vector3)
+	remote:FireClient(player, "Knockback", velocity)
+end
+
 function Effects.impact(position: Vector3, isFlesh: boolean)
 	remote:FireAllClients("Impact", position, isFlesh)
 end

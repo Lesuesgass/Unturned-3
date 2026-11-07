@@ -129,6 +129,61 @@ Config.Zombies = {
 	SpawnMinPlayerDistance = 45,
 }
 
+-- Zombie types. Health and damage replace the base values above; the rest are abilities.
+-- weight is the share of ordinary spawns; the Behemoth only spawns in zones marked as boss
+-- lairs (military towns), one at a time.
+Config.ZombieTypes = {
+	Walker = {
+		weight = 76,
+		health = 100,
+		damage = 11,
+		speedScale = 1,
+		eyeColor = Color3.fromRGB(215, 205, 120),
+		voicePitch = 1,
+	},
+	Smoulderer = {
+		weight = 12,
+		health = 120,
+		damage = 10,
+		speedScale = 1.15,
+		eyeColor = Color3.fromRGB(255, 140, 40),
+		voicePitch = 0.9,
+		burnSeconds = 4, -- a hit sets the player alight for this long
+		burnDamagePerSecond = 3,
+	},
+	Livewire = {
+		weight = 12,
+		health = 110,
+		damage = 9,
+		speedScale = 1.1,
+		eyeColor = Color3.fromRGB(120, 230, 255),
+		voicePitch = 1.2,
+		shockSeconds = 1.5, -- a hit slows the player and drains stamina
+		shockStamina = 30,
+		arcRange = 14, -- zaps a nearby player from a distance
+		arcDamage = 6,
+		arcCooldown = 6,
+	},
+	Behemoth = {
+		weight = 0,
+		boss = true,
+		health = 1500,
+		damage = 32,
+		speedScale = 0.8,
+		scale = 1.9,
+		attackRange = 8,
+		eyeColor = Color3.fromRGB(255, 50, 40),
+		voicePitch = 0.55,
+		slamRange = 13, -- ground slam hits everyone nearby and throws them back
+		slamDamage = 28,
+		slamCooldown = 7,
+		chargeSpeed = 24, -- short sprint toward a player who keeps their distance
+		chargeTime = 2,
+		chargeCooldown = 10,
+		respawnSeconds = 600,
+	},
+}
+
 Config.Loot = {
 	-- Base values for Easy. Medium and Hard multiply fill and refill chances by their
 	-- lootScale and divide the refill time by it.
@@ -190,6 +245,9 @@ Config.Sounds = {
 		"rbxassetid://134766104012323",
 		"rbxassetid://74103327872448",
 	},
+	BossRoar = "", -- sounds/boss_roar.ogg
+	Zap = "", -- sounds/zap.ogg
+	FireCrackle = "", -- sounds/fire_crackle.ogg, loops on Smoulderers
 	ZombieAttack = {
 		"rbxassetid://18942682166",
 		"rbxassetid://18942691946",
@@ -201,6 +259,7 @@ Config.Sounds = {
 	StructureBreak = "",
 	ChargeBeep = "",
 	Explosion = "",
+	BossSlam = "", -- sounds/boss_slam.ogg
 }
 
 return Config

@@ -482,6 +482,7 @@ function MapBuilder.build(mapId: string, onProgress: ((string) -> ())?)
 			center = V(town.x, town.baseY, town.z),
 			radius = town.radius,
 			count = town.zombies or 0,
+			kind = town.kind,
 		})
 	end
 

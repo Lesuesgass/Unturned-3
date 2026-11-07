@@ -86,6 +86,8 @@ function PlayerState.reset(player: Player): State
 	player:SetAttribute("Immunity", 100)
 	player:SetAttribute("Oxygen", Config.Survival.OxygenMax)
 	player:SetAttribute("Bleeding", false)
+	player:SetAttribute("BurningUntil", 0)
+	player:SetAttribute("ShockedUntil", 0)
 	player:SetAttribute("Sprinting", false)
 	player:SetAttribute("Reloading", false)
 	return state
