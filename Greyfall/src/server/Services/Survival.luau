@@ -91,9 +91,9 @@ local function slowTick()
 			addStat(player, "Food", -S.FoodDrainPerSecond)
 			addStat(player, "Water", -S.WaterDrainPerSecond * (if sprinting then S.SprintWaterMultiplier else 1))
 
-			local food = player:GetAttribute("Food") :: number
-			local water = player:GetAttribute("Water") :: number
-			local infection = player:GetAttribute("Infection") :: number
+			local food = (player:GetAttribute("Food") or 100) :: number
+			local water = (player:GetAttribute("Water") or 100) :: number
+			local infection = (player:GetAttribute("Infection") or 0) :: number
 			local damage = 0
 
 			if food <= 0 or water <= 0 then

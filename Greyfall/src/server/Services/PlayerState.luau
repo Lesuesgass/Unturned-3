@@ -35,6 +35,9 @@ PlayerState.HotbarSize = HOTBAR_SIZE
 -- Set by the Equipment service: called after a sync when the equipped stack changed.
 PlayerState.onEquipmentChanged = nil :: ((Player) -> ())?
 
+-- Set by the Building service: extra fields (open storage) added to every snapshot.
+PlayerState.snapshotExtras = nil :: ((Player) -> { [string]: any })?
+
 local states: { [Player]: State } = {}
 
 local syncRemote: RemoteEvent
@@ -283,14 +286,20 @@ local function flush(player: Player)
 	for i, stack in state.inventory do
 		inventory[i] = { uid = stack.uid, id = stack.id, count = stack.count, mag = stack.mag or -1 }
 	end
-	syncRemote:FireClient(player, {
+	local snapshot = {
 		inventory = inventory,
 		hotbar = table.clone(state.hotbar),
 		equipped = state.equipped,
 		pack = state.pack,
 		weight = PlayerState.weight(state),
 		capacity = PlayerState.capacity(state),
-	})
+	}
+	if PlayerState.snapshotExtras then
+		for key, value in PlayerState.snapshotExtras(player) do
+			snapshot[key] = value
+		end
+	end
+	syncRemote:FireClient(player, snapshot)
 end
 
 -- Queues an inventory snapshot for the client. Several changes in one frame send one snapshot.

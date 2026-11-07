@@ -4,7 +4,7 @@
 -- Every builder receives a context table that collects:
 --   ctx.loot  = { { position: Vector3, table: string } }
 --   ctx.doors = { { part, closed: CFrame, open: CFrame } }
---   ctx.trees = { { trunk, parts } }
+--   ctx.resources = { { part, parts, resource, yield } }  trees, rocks and wrecks that can be harvested
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(ReplicatedStorage.Shared.Theme)
@@ -66,7 +66,16 @@ local function door(ctx, parent: Instance, frame: CFrame, o, thickness: number)
 end
 
 -- A straight wall. frame sits at the bottom centre of the wall, X runs along it.
-function Structures.wall(ctx, parent: Instance, frame: CFrame, length: number, height: number, thickness: number, openings, style)
+function Structures.wall(
+	ctx,
+	parent: Instance,
+	frame: CFrame,
+	length: number,
+	height: number,
+	thickness: number,
+	openings,
+	style
+)
 	local sorted = table.clone(openings or {})
 	table.sort(sorted, function(a, b)
 		return a.x < b.x
@@ -150,9 +159,36 @@ function Structures.box(ctx, model: Instance, base: CFrame, spec)
 
 	local y = floorTop
 	Structures.wall(ctx, model, base * CFrame.new(0, y, -d / 2 + t / 2), w, h, t, spec.front, style)
-	Structures.wall(ctx, model, base * CFrame.new(0, y, d / 2 - t / 2) * CFrame.Angles(0, math.pi, 0), w, h, t, spec.back, style)
-	Structures.wall(ctx, model, base * CFrame.new(-w / 2 + t / 2, y, 0) * CFrame.Angles(0, math.pi / 2, 0), d - 2 * t, h, t, spec.left, style)
-	Structures.wall(ctx, model, base * CFrame.new(w / 2 - t / 2, y, 0) * CFrame.Angles(0, -math.pi / 2, 0), d - 2 * t, h, t, spec.right, style)
+	Structures.wall(
+		ctx,
+		model,
+		base * CFrame.new(0, y, d / 2 - t / 2) * CFrame.Angles(0, math.pi, 0),
+		w,
+		h,
+		t,
+		spec.back,
+		style
+	)
+	Structures.wall(
+		ctx,
+		model,
+		base * CFrame.new(-w / 2 + t / 2, y, 0) * CFrame.Angles(0, math.pi / 2, 0),
+		d - 2 * t,
+		h,
+		t,
+		spec.left,
+		style
+	)
+	Structures.wall(
+		ctx,
+		model,
+		base * CFrame.new(w / 2 - t / 2, y, 0) * CFrame.Angles(0, -math.pi / 2, 0),
+		d - 2 * t,
+		h,
+		t,
+		spec.right,
+		style
+	)
 
 	local roofColor = spec.roofColor or C(70, 68, 66)
 	newPart("Part", model, {
@@ -208,7 +244,14 @@ function Structures.box(ctx, model: Instance, base: CFrame, spec)
 	end
 end
 
-local function verticalCylinder(parent: Instance, position: Vector3, diameter: number, height: number, color: Color3, material: Enum.Material)
+local function verticalCylinder(
+	parent: Instance,
+	position: Vector3,
+	diameter: number,
+	height: number,
+	color: Color3,
+	material: Enum.Material
+)
 	return newPart("Part", parent, {
 		Shape = Enum.PartType.Cylinder,
 		Size = V(height, diameter, diameter),
@@ -219,7 +262,14 @@ local function verticalCylinder(parent: Instance, position: Vector3, diameter: n
 end
 
 local function railing(parent: Instance, center: CFrame, size: number, color: Color3)
-	for _, side in { { 0, -size / 2, size, 0.3 }, { 0, size / 2, size, 0.3 }, { -size / 2, 0, 0.3, size }, { size / 2, 0, 0.3, size } } do
+	for _, side in
+		{
+			{ 0, -size / 2, size, 0.3 },
+			{ 0, size / 2, size, 0.3 },
+			{ -size / 2, 0, 0.3, size },
+			{ size / 2, 0, 0.3, size },
+		}
+	do
 		newPart("Part", parent, {
 			Size = V(side[3], 3, side[4]),
 			CFrame = center * CFrame.new(side[1], 1.5, side[2]),
@@ -435,7 +485,9 @@ Structures.Types = {
 			-- Window bands on all four faces.
 			for floor = 1, math.floor(height / 9) - 1 do
 				local y = floor * 9 + 1
-				for _, face in { { 0, -15.1, 26, 0.2 }, { 0, 15.1, 26, 0.2 }, { -15.1, 0, 0.2, 26 }, { 15.1, 0, 0.2, 26 } } do
+				for _, face in
+					{ { 0, -15.1, 26, 0.2 }, { 0, 15.1, 26, 0.2 }, { -15.1, 0, 0.2, 26 }, { 15.1, 0, 0.2, 26 } }
+				do
 					newPart("Part", model, {
 						Size = V(face[3], 3.2, face[4]),
 						CFrame = base * CFrame.new(face[1], y, face[2]),
@@ -500,7 +552,14 @@ Structures.Types = {
 			local height = 46
 			for band = 0, 3 do
 				local bandH = height / 4
-				verticalCylinder(model, pos + V(0, band * bandH - 1, 0), 14, bandH, if band % 2 == 0 then C(210, 208, 200) else C(150, 60, 55), M.Concrete)
+				verticalCylinder(
+					model,
+					pos + V(0, band * bandH - 1, 0),
+					14,
+					bandH,
+					if band % 2 == 0 then C(210, 208, 200) else C(150, 60, 55),
+					M.Concrete
+				)
 			end
 			local top = CFrame.new(pos + V(0, height - 1, 0)) * base.Rotation
 			newPart("Part", model, { Size = V(18, 1, 18), CFrame = top, Color = C(70, 70, 70), Material = M.Metal })
@@ -543,8 +602,16 @@ function Structures.carWreck(ctx, parent: Instance, base: CFrame)
 	model.Name = "Wreck"
 	local color = pick(ctx.rng, CAR_COLORS)
 	local tilt = base * CFrame.Angles(math.rad(ctx.rng:NextNumber(-3, 3)), 0, math.rad(ctx.rng:NextNumber(-4, 4)))
-	newPart("Part", model, { Size = V(6, 2.4, 13), CFrame = tilt * CFrame.new(0, 2.2, 0), Color = color, Material = M.CorrodedMetal })
-	newPart("Part", model, { Size = V(5.6, 2, 6.5), CFrame = tilt * CFrame.new(0, 4.4, 0.8), Color = color, Material = M.CorrodedMetal })
+	local body = newPart(
+		"Part",
+		model,
+		{ Size = V(6, 2.4, 13), CFrame = tilt * CFrame.new(0, 2.2, 0), Color = color, Material = M.CorrodedMetal }
+	)
+	newPart(
+		"Part",
+		model,
+		{ Size = V(5.6, 2, 6.5), CFrame = tilt * CFrame.new(0, 4.4, 0.8), Color = color, Material = M.CorrodedMetal }
+	)
 	newPart("Part", model, {
 		Size = V(5.4, 1.6, 0.2),
 		CFrame = tilt * CFrame.new(0, 4.4, -2.5),
@@ -563,6 +630,14 @@ function Structures.carWreck(ctx, parent: Instance, base: CFrame)
 	end
 	model.Parent = parent
 	addLoot(ctx, (base * CFrame.new(4.5, 0.1, 0)).Position, "Vehicle")
+	local parts = {}
+	for _, child in model:GetChildren() do
+		if child:IsA("BasePart") then
+			child:SetAttribute("Resource", "scrap")
+			table.insert(parts, child)
+		end
+	end
+	table.insert(ctx.resources, { part = body, parts = parts, resource = "scrap", yield = "scrap_metal" })
 end
 
 function Structures.fence(parent: Instance, a: Vector3, b: Vector3)
@@ -586,30 +661,40 @@ function Structures.fence(parent: Instance, a: Vector3, b: Vector3)
 	})
 end
 
+local TREE_KINDS = {
+	pine = { trunk = C(85, 65, 48), leavesA = C(55, 75, 50), leavesB = C(70, 85, 60), yield = "pine_log" },
+	birch = { trunk = C(215, 210, 198), leavesA = C(120, 140, 70), leavesB = C(150, 160, 85), yield = "birch_log" },
+	maple = { trunk = C(95, 70, 55), leavesA = C(150, 85, 50), leavesB = C(120, 110, 55), yield = "maple_log" },
+}
+
+-- kind is "pine", "birch" or "maple"; each drops its own kind of log.
 function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
 	local rng = ctx.rng
+	local style = TREE_KINDS[kind] or TREE_KINDS.pine
 	local model = Instance.new("Model")
 	model.Name = "Tree"
 	local scale = rng:NextNumber(0.8, 1.3)
 	local trunkH = (if kind == "pine" then 14 else 11) * scale
+	local girth = (if kind == "birch" then 1.2 else 1.6) * scale
 	local trunk = newPart("Part", model, {
 		Name = "Trunk",
 		Shape = Enum.PartType.Cylinder,
-		Size = V(trunkH, 1.6 * scale, 1.6 * scale),
+		Size = V(trunkH, girth, girth),
 		CFrame = CFrame.new(position + V(0, trunkH / 2 - 1, 0)) * CFrame.Angles(0, 0, math.pi / 2),
-		Color = C(85, 65, 48),
+		Color = style.trunk,
 		Material = M.Wood,
 	})
 	trunk:SetAttribute("Resource", "log")
 
 	local parts = { trunk }
+	local green = style.leavesA:Lerp(style.leavesB, rng:NextNumber())
 	if kind == "pine" then
-		local green = C(55, 75, 50):Lerp(C(70, 85, 60), rng:NextNumber())
 		for layer = 0, 2 do
 			local size = (11 - layer * 3) * scale
 			local leaves = newPart("Part", model, {
 				Size = V(size, 4 * scale, size),
-				CFrame = CFrame.new(position + V(0, (6 + layer * 4.2) * scale, 0)) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0),
+				CFrame = CFrame.new(position + V(0, (6 + layer * 4.2) * scale, 0))
+					* CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0),
 				Color = green,
 				Material = M.Grass,
 				CanCollide = false,
@@ -617,13 +702,12 @@ function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
 			table.insert(parts, leaves)
 		end
 	else
-		local green = C(80, 100, 60):Lerp(C(110, 115, 70), rng:NextNumber())
 		for _ = 1, 2 do
-			local size = rng:NextNumber(8, 11) * scale
+			local size = rng:NextNumber(7, 10) * scale
 			local offset = V(rng:NextNumber(-1.5, 1.5), trunkH + rng:NextNumber(-1, 1.5), rng:NextNumber(-1.5, 1.5))
 			local leaves = newPart("Part", model, {
 				Shape = Enum.PartType.Ball,
-				Size = V(size, size, size),
+				Size = V(size, size * (if kind == "birch" then 1.3 else 1), size),
 				CFrame = CFrame.new(position + offset),
 				Color = green,
 				Material = M.Grass,
@@ -633,19 +717,21 @@ function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
 		end
 	end
 	model.Parent = parent
-	table.insert(ctx.trees, { trunk = trunk, parts = parts })
+	table.insert(ctx.resources, { part = trunk, parts = parts, resource = "log", yield = style.yield })
 end
 
 function Structures.rock(ctx, parent: Instance, position: Vector3)
 	local rng = ctx.rng
 	local size = rng:NextNumber(5, 13)
-	newPart("Part", parent, {
+	local rock = newPart("Part", parent, {
 		Name = "Rock",
 		Size = V(size * rng:NextNumber(0.9, 1.4), size * rng:NextNumber(0.6, 0.9), size),
 		CFrame = CFrame.new(position) * CFrame.Angles(rng:NextNumber(0, 3), rng:NextNumber(0, 3), rng:NextNumber(0, 3)),
 		Color = C(115, 112, 105),
 		Material = M.Rock,
 	})
+	rock:SetAttribute("Resource", "stone")
+	table.insert(ctx.resources, { part = rock, parts = { rock }, resource = "stone", yield = "stone" })
 end
 
 return Structures

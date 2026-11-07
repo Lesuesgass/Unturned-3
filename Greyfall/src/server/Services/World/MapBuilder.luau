@@ -153,7 +153,14 @@ local function placeNature(ctx, field, def, parent: Instance)
 		then
 			local slope = math.abs(field:height(x + 4, z) - h) + math.abs(field:height(x, z + 4) - h)
 			if slope < 5 then
-				local kind = if h > 45 or forest > def.forestThreshold + 0.12 then "pine" else "broadleaf"
+				local kind
+				if h > 45 or forest > def.forestThreshold + 0.12 then
+					kind = "pine"
+				elseif math.noise(x / 150, z / 150, 7.7) > 0 then
+					kind = "birch"
+				else
+					kind = "maple"
+				end
 				Structures.tree(ctx, trees, V(x, h, z), kind)
 			end
 		end
@@ -162,7 +169,7 @@ local function placeNature(ctx, field, def, parent: Instance)
 	local rocks = Instance.new("Folder")
 	rocks.Name = "Rocks"
 	rocks.Parent = parent
-	for _ = 1, math.floor(def.treeAttempts / 12) do
+	for _ = 1, math.floor(def.treeAttempts / 6) do
 		local x = rng:NextNumber(-half + 20, half - 20)
 		local z = rng:NextNumber(-half + 20, half - 20)
 		local h = field:height(x, z)
@@ -233,7 +240,7 @@ function MapBuilder.build(mapId: string)
 	root.Name = "World"
 	root.Parent = workspace
 
-	local ctx = { rng = Random.new(def.seed), loot = {}, doors = {}, trees = {} }
+	local ctx = { rng = Random.new(def.seed), loot = {}, doors = {}, resources = {} }
 
 	local towns = Instance.new("Folder")
 	towns.Name = "Towns"
@@ -261,7 +268,10 @@ function MapBuilder.build(mapId: string)
 	end
 
 	print(
-		`[MapBuilder] {def.displayName}: {#ctx.loot} loot points, {#ctx.doors} doors, {#ctx.trees} trees, built in {string.format("%.1f", os.clock() - started)} s`
+		`[MapBuilder] {def.displayName}: {#ctx.loot} loot points, {#ctx.doors} doors, {#ctx.resources} resources, built in {string.format(
+			"%.1f",
+			os.clock() - started
+		)} s`
 	)
 
 	return {
@@ -270,7 +280,7 @@ function MapBuilder.build(mapId: string)
 		folder = root,
 		lootPoints = ctx.loot,
 		doors = ctx.doors,
-		trees = ctx.trees,
+		resources = ctx.resources,
 		spawns = resolveSpawns(field, def),
 		zones = zones,
 	}

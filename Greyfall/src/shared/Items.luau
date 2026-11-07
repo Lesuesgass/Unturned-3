@@ -4,11 +4,15 @@
 --   name, category, weight (kg per unit), maxStack, description
 --   model = { size, color, material? }   placeholder block used in the world and in hands
 --   Consumables: food, water, health, infection (negative cures), stamina, stopsBleeding
---   Melee: damage, range, cooldown, treeDamage
+--   Melee: damage, range, cooldown, structureDamage,
+--          gather = { log?, stone?, scrap? }  damage dealt to trees, rocks and wrecks
 --   Gun: damage, pellets?, fireRate (seconds between shots), automatic, magSize, ammo,
---        range, spread (degrees), reloadTime, noise (zombie alert radius), sound (Config.Sounds key)
+--        range, spread (degrees), reloadTime, noise (zombie alert radius), sound (Config.Sounds key),
+--        structureDamage (per bullet or pellet)
+--   Explosive: structureDamage, playerDamage, radius, fuse (seconds)
+--   Structure: generated from BuildingDefs, carries tier and piece
 --   Backpack: capacity (extra kg)
---   Tool: light = { range, brightness, angle }
+--   Tool: light = { range, brightness, angle }, repairs (true for hammer and blowtorch)
 
 export type ItemDef = {
 	id: string,
@@ -20,6 +24,8 @@ export type ItemDef = {
 	model: { size: Vector3, color: Color3, material: Enum.Material? },
 	[string]: any,
 }
+
+local BuildingDefs = require(script.Parent.BuildingDefs)
 
 local C = Color3.fromRGB
 local V = Vector3.new
@@ -165,7 +171,8 @@ local defs: { [string]: any } = {
 		damage = 20,
 		range = 5,
 		cooldown = 0.45,
-		treeDamage = 4,
+		gather = { log = 4, scrap = 3 },
+		structureDamage = 3,
 		description = "Fast but weak.",
 		model = { size = V(0.2, 0.3, 1.8), color = C(160, 160, 160), material = Enum.Material.Metal },
 	},
@@ -177,7 +184,8 @@ local defs: { [string]: any } = {
 		damage = 18,
 		range = 5,
 		cooldown = 0.45,
-		treeDamage = 4,
+		gather = { log = 4, scrap = 3 },
+		structureDamage = 3,
 		description = "A sharpened piece of scrap.",
 		model = { size = V(0.25, 0.3, 1.8), color = C(120, 110, 100), material = Enum.Material.CorrodedMetal },
 	},
@@ -189,7 +197,8 @@ local defs: { [string]: any } = {
 		damage = 25,
 		range = 6,
 		cooldown = 0.8,
-		treeDamage = 6,
+		gather = { log = 6 },
+		structureDamage = 6,
 		description = "Crude, heavy, reliable.",
 		model = { size = V(0.5, 0.5, 3.2), color = C(110, 80, 55), material = Enum.Material.Wood },
 	},
@@ -201,7 +210,8 @@ local defs: { [string]: any } = {
 		damage = 35,
 		range = 6,
 		cooldown = 0.85,
-		treeDamage = 6,
+		gather = { log = 6, stone = 5, scrap = 30 },
+		structureDamage = 10,
 		description = "Solid steel.",
 		model = { size = V(0.25, 0.25, 3), color = C(70, 70, 75), material = Enum.Material.Metal },
 	},
@@ -213,7 +223,8 @@ local defs: { [string]: any } = {
 		damage = 40,
 		range = 6,
 		cooldown = 0.75,
-		treeDamage = 15,
+		gather = { log = 15, scrap = 4 },
+		structureDamage = 6,
 		description = "Long blade, good reach.",
 		model = { size = V(0.15, 0.5, 3), color = C(150, 150, 145), material = Enum.Material.Metal },
 	},
@@ -225,9 +236,23 @@ local defs: { [string]: any } = {
 		damage = 50,
 		range = 6.5,
 		cooldown = 1.2,
-		treeDamage = 35,
+		gather = { log = 35, stone = 5, scrap = 10 },
+		structureDamage = 14,
 		description = "Heavy hits. Fells trees quickly.",
 		model = { size = V(0.4, 1, 3.4), color = C(140, 55, 45) },
+	},
+	pickaxe = {
+		name = "Pickaxe",
+		category = "Melee",
+		weight = 2.8,
+		maxStack = 1,
+		damage = 32,
+		range = 6,
+		cooldown = 1.1,
+		gather = { log = 8, stone = 30, scrap = 12 },
+		structureDamage = 12,
+		description = "Breaks rocks into stone.",
+		model = { size = V(1.6, 0.3, 3.2), color = C(95, 90, 85), material = Enum.Material.Metal },
 	},
 
 	-- Guns
@@ -236,6 +261,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 0.9,
 		maxStack = 1,
+		structureDamage = 3,
 		damage = 28,
 		fireRate = 0.22,
 		automatic = false,
@@ -254,6 +280,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3,
 		maxStack = 1,
+		structureDamage = 2,
 		damage = 12,
 		pellets = 8,
 		fireRate = 0.9,
@@ -273,6 +300,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3.5,
 		maxStack = 1,
+		structureDamage = 8,
 		damage = 70,
 		fireRate = 1.1,
 		automatic = false,
@@ -291,6 +319,7 @@ local defs: { [string]: any } = {
 		category = "Gun",
 		weight = 3.2,
 		maxStack = 1,
+		structureDamage = 4,
 		damage = 30,
 		fireRate = 0.11,
 		automatic = true,
@@ -348,21 +377,137 @@ local defs: { [string]: any } = {
 		description = "Bent and rusted.",
 		model = { size = V(1, 0.3, 0.8), color = C(115, 100, 85), material = Enum.Material.CorrodedMetal },
 	},
-	log = {
-		name = "Log",
+
+	-- Building and raiding materials
+	pine_log = {
+		name = "Pine Log",
 		category = "Material",
 		weight = 2,
 		maxStack = 4,
-		description = "Cut it into planks.",
-		model = { size = V(0.9, 0.9, 3), color = C(100, 75, 50), material = Enum.Material.Wood },
+		description = "Cut it into pine planks.",
+		model = { size = V(0.9, 0.9, 3), color = C(105, 80, 55), material = Enum.Material.Wood },
 	},
-	planks = {
-		name = "Wooden Planks",
+	birch_log = {
+		name = "Birch Log",
+		category = "Material",
+		weight = 2,
+		maxStack = 4,
+		description = "Cut it into birch planks.",
+		model = { size = V(0.9, 0.9, 3), color = C(215, 210, 195), material = Enum.Material.Wood },
+	},
+	maple_log = {
+		name = "Maple Log",
+		category = "Material",
+		weight = 2.2,
+		maxStack = 4,
+		description = "Cut it into maple planks.",
+		model = { size = V(0.9, 0.9, 3), color = C(120, 80, 55), material = Enum.Material.Wood },
+	},
+	pine_planks = {
+		name = "Pine Planks",
 		category = "Material",
 		weight = 0.4,
+		maxStack = 15,
+		description = "The cheapest building material.",
+		model = { size = V(2.5, 0.25, 0.8), color = C(170, 135, 95), material = Enum.Material.WoodPlanks },
+	},
+	birch_planks = {
+		name = "Birch Planks",
+		category = "Material",
+		weight = 0.4,
+		maxStack = 15,
+		description = "Sturdier than pine.",
+		model = { size = V(2.5, 0.25, 0.8), color = C(205, 190, 160), material = Enum.Material.WoodPlanks },
+	},
+	maple_planks = {
+		name = "Maple Planks",
+		category = "Material",
+		weight = 0.45,
+		maxStack = 15,
+		description = "The strongest wood.",
+		model = { size = V(2.5, 0.25, 0.8), color = C(140, 90, 60), material = Enum.Material.WoodPlanks },
+	},
+	stone = {
+		name = "Stone",
+		category = "Material",
+		weight = 0.6,
 		maxStack = 12,
-		description = "Basic building material.",
-		model = { size = V(2.5, 0.25, 0.8), color = C(160, 125, 85), material = Enum.Material.WoodPlanks },
+		description = "Broken from rocks with a pickaxe.",
+		model = { size = V(0.9, 0.7, 0.9), color = C(120, 118, 112), material = Enum.Material.Rock },
+	},
+	charcoal = {
+		name = "Charcoal",
+		category = "Material",
+		weight = 0.2,
+		maxStack = 12,
+		description = "Burned pine. Fuel for bricks and gunpowder.",
+		model = { size = V(0.7, 0.4, 0.5), color = C(40, 38, 36), material = Enum.Material.Slate },
+	},
+	bricks = {
+		name = "Bricks",
+		category = "Material",
+		weight = 0.8,
+		maxStack = 12,
+		description = "Fired from stone and charcoal.",
+		model = { size = V(1.2, 0.5, 0.6), color = C(150, 85, 70), material = Enum.Material.Brick },
+	},
+	metal_plate = {
+		name = "Metal Plate",
+		category = "Material",
+		weight = 1,
+		maxStack = 10,
+		description = "Welded from scrap with a blowtorch.",
+		model = { size = V(1.6, 0.2, 1.2), color = C(110, 115, 118), material = Enum.Material.DiamondPlate },
+	},
+	fertilizer = {
+		name = "Fertilizer",
+		category = "Material",
+		weight = 0.5,
+		maxStack = 8,
+		description = "Found on farms. Used for gunpowder.",
+		model = { size = V(0.8, 1, 0.5), color = C(120, 130, 90), material = Enum.Material.Fabric },
+	},
+	gunpowder = {
+		name = "Gunpowder",
+		category = "Material",
+		weight = 0.1,
+		maxStack = 20,
+		description = "Used to craft explosives.",
+		model = { size = V(0.5, 0.4, 0.5), color = C(55, 55, 55) },
+	},
+	matchbox = {
+		name = "Matchbox",
+		category = "Material",
+		weight = 0.05,
+		maxStack = 1,
+		description = "Needed to burn logs into charcoal. Not used up.",
+		model = { size = V(0.5, 0.2, 0.3), color = C(160, 60, 50) },
+	},
+
+	-- Explosives
+	pipe_charge = {
+		name = "Pipe Charge",
+		category = "Explosive",
+		weight = 1,
+		maxStack = 4,
+		structureDamage = 240,
+		playerDamage = 70,
+		radius = 8,
+		fuse = 6,
+		description = "Plant it on a structure. Breaks wood quickly, dents brick.",
+		model = { size = V(0.5, 0.5, 1.4), color = C(90, 85, 75), material = Enum.Material.Metal },
+	},
+	demolition_charge = {
+		name = "Demolition Charge",
+		category = "Explosive",
+		weight = 2.5,
+		maxStack = 2,
+		structureDamage = 760,
+		playerDamage = 120,
+		radius = 11,
+		fuse = 8,
+		description = "Plant it on a structure. The only reliable way through metal.",
+		model = { size = V(1.4, 0.7, 1), color = C(95, 100, 70), material = Enum.Material.Metal },
 	},
 
 	-- Backpacks
@@ -395,6 +540,24 @@ local defs: { [string]: any } = {
 	},
 
 	-- Tools
+	hammer = {
+		name = "Hammer",
+		category = "Tool",
+		weight = 0.8,
+		maxStack = 1,
+		repairs = true,
+		description = "Needed to craft structures. Equip it and click a wood or brick piece to repair it, press X to salvage your own.",
+		model = { size = V(0.3, 1, 1.6), color = C(110, 90, 70), material = Enum.Material.Wood },
+	},
+	blowtorch = {
+		name = "Blowtorch",
+		category = "Tool",
+		weight = 1.2,
+		maxStack = 1,
+		repairs = true,
+		description = "Welds scrap metal into plates. Equip it and click a metal piece to repair it.",
+		model = { size = V(0.5, 0.8, 1.6), color = C(160, 120, 50), material = Enum.Material.Metal },
+	},
 	flashlight = {
 		name = "Flashlight",
 		category = "Tool",
@@ -405,6 +568,37 @@ local defs: { [string]: any } = {
 		model = { size = V(0.35, 0.35, 1.3), color = C(40, 40, 40), material = Enum.Material.Metal },
 	},
 }
+
+-- Structure kits, one per tier and piece, plus storage containers.
+for _, tier in BuildingDefs.TierOrder do
+	local tierDef = BuildingDefs.Tiers[tier]
+	for _, piece in BuildingDefs.PieceOrder do
+		local pieceDef = BuildingDefs.Pieces[piece]
+		defs[BuildingDefs.itemId(tier, piece)] = {
+			name = `{tierDef.name} {pieceDef.name}`,
+			category = "Structure",
+			weight = tierDef.kitWeight,
+			maxStack = 4,
+			tier = tier,
+			piece = piece,
+			description = `Equip it and click to place. {BuildingDefs.maxHealth(tier, piece)} health.`,
+			model = { size = V(1.6, 1.2, 1.6), color = tierDef.color, material = tierDef.surface },
+		}
+	end
+end
+for id, storage in BuildingDefs.Storage do
+	local tierDef = BuildingDefs.Tiers[storage.tier]
+	defs[id] = {
+		name = storage.name,
+		category = "Structure",
+		weight = tierDef.kitWeight,
+		maxStack = 2,
+		tier = storage.tier,
+		piece = id,
+		description = `Storage for {storage.slots} stacks. Only you can open it. {storage.health} health.`,
+		model = { size = V(1.6, 1.2, 1.2), color = tierDef.color, material = tierDef.surface },
+	}
+end
 
 local Items = {}
 
@@ -419,7 +613,11 @@ function Items.get(id: string): ItemDef?
 end
 
 function Items.isEquippable(def: ItemDef): boolean
-	return def.category == "Melee" or def.category == "Gun" or def.category == "Tool"
+	return def.category == "Melee"
+		or def.category == "Gun"
+		or def.category == "Tool"
+		or def.category == "Structure"
+		or def.category == "Explosive"
 end
 
 function Items.isConsumable(def: ItemDef): boolean
@@ -458,6 +656,9 @@ function Items.summary(def: ItemDef): string
 		if ammoDef then
 			table.insert(parts, ammoDef.name)
 		end
+	elseif def.category == "Explosive" then
+		table.insert(parts, `Structure damage {def.structureDamage}`)
+		table.insert(parts, `Radius {def.radius}`)
 	elseif def.category == "Backpack" then
 		table.insert(parts, `Capacity +{def.capacity} kg`)
 	end

@@ -19,7 +19,9 @@
         }
       },
       "StarterCharacterScripts": {
-        "$path": "src/character"
+        "Health": {
+          "$path": "src/character/Health.server.luau"
+        }
       }
     }
   }

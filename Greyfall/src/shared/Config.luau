@@ -82,6 +82,11 @@ Config.Combat = {
 	MaxInteractDistance = 10,
 }
 
+Config.Building = {
+	TownMargin = 25, -- no building inside a town radius plus this many studs
+	MaxPiecesPerPlayer = 400,
+}
+
 Config.DayNight = {
 	DayLengthMinutes = 32,
 	StartClockTime = 8,
@@ -101,6 +106,11 @@ Config.Sounds = {
 	ZombieGroan = "",
 	ZombieAttack = "",
 	DoorOpen = "",
+	Build = "",
+	Repair = "",
+	StructureBreak = "",
+	ChargeBeep = "",
+	Explosion = "",
 }
 
 return Config
