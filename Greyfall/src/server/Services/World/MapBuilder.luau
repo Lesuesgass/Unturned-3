@@ -11,6 +11,7 @@ local MapBuilder = {}
 local V = Vector3.new
 
 local decorateTown -- defined below, used by layoutTown
+local optimise -- defined below
 
 -- Buildings each kind of town receives, placed from the centre outwards.
 local PLANS = {
@@ -289,6 +290,102 @@ local function layoutTown(ctx, field, town, parent: Instance)
 	decorateTown(ctx, field, town, folder, placed)
 end
 
+local function flatEnough(field, x: number, z: number, radius: number, tolerance: number): boolean
+	local h = field:height(x, z)
+	for _, offset in { { radius, 0 }, { -radius, 0 }, { 0, radius }, { 0, -radius } } do
+		if math.abs(field:height(x + offset[1], z + offset[2]) - h) > tolerance then
+			return false
+		end
+	end
+	return true
+end
+
+-- Gas stations halfway along long roads and name boards where roads enter towns.
+local function placeRoadside(ctx, field, parent: Instance)
+	local byName = {}
+	for _, town in field.towns do
+		byName[town.x .. "," .. town.z] = town
+	end
+	for _, road in field.roads do
+		local dx, dz = (road.bx - road.ax) / road.length, (road.bz - road.az) / road.length
+		-- Town signs at both ends.
+		for _, endpoint in { { road.ax, road.az, 1 }, { road.bx, road.bz, -1 } } do
+			local town = byName[endpoint[1] .. "," .. endpoint[2]]
+			if town then
+				local along = town.radius + 18
+				local sx = endpoint[1] + dx * along * endpoint[3] - dz * (Terrain.RoadHalfWidth + 4)
+				local sz = endpoint[2] + dz * along * endpoint[3] + dx * (Terrain.RoadHalfWidth + 4)
+				local ground = V(sx, field:height(sx, sz), sz)
+				local facing = V(dx * endpoint[3], 0, dz * endpoint[3])
+				Decor.signpost(parent, CFrame.lookAt(ground, ground + facing), town.name)
+			end
+		end
+		if road.length > 450 then
+			for _, side in { 1, -1 } do
+				local s = road.length * 0.5
+				local cx, cz = road.ax + dx * s, road.az + dz * s
+				local nx, nz = -dz * side, dx * side
+				local shopX, shopZ = cx + nx * 34, cz + nz * 34
+				local padX, padZ = cx + nx * 17, cz + nz * 17
+				if
+					not field:townAt(shopX, shopZ, 30)
+					and flatEnough(field, shopX, shopZ, 12, 3)
+					and field:height(shopX, shopZ) > 2
+				then
+					local shopGround = V(shopX, field:height(shopX, shopZ), shopZ)
+					local toRoad = V(-nx, 0, -nz)
+					local model = Instance.new("Model")
+					model.Name = "GasStation"
+					Structures.Types.kiosk.build(ctx, model, CFrame.lookAt(shopGround, shopGround + toRoad), {})
+					local padGround = V(padX, field:height(padX, padZ), padZ)
+					Decor.gasCanopy(model, CFrame.lookAt(padGround, padGround + toRoad))
+					Structures.carWreck(
+						ctx,
+						model,
+						CFrame.new(padX + dx * 6, padGround.Y, padZ + dz * 6)
+							* CFrame.Angles(0, math.atan2(-dx, -dz), 0)
+					)
+					model.Parent = parent
+					break
+				end
+			end
+		end
+	end
+end
+
+-- Campsites and hunting stands hidden in the forests.
+local function placeWilderness(ctx, field, def, parent: Instance)
+	local rng = ctx.rng
+	local half = field.half
+	local wanted = math.floor(def.size / 400)
+	local camps, stands = 0, 0
+	for _ = 1, 400 do
+		if camps >= wanted and stands >= wanted then
+			break
+		end
+		local x = rng:NextNumber(-half + 60, half - 60)
+		local z = rng:NextNumber(-half + 60, half - 60)
+		local h = field:height(x, z)
+		if
+			h > 4
+			and h < def.snowline - 10
+			and field:forest(x, z) > def.forestThreshold
+			and not field:townAt(x, z, 60)
+			and field:roadDistance(x, z) > 30
+			and flatEnough(field, x, z, 7, 2)
+		then
+			local base = CFrame.new(x, h, z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+			if camps < wanted and (stands >= wanted or rng:NextNumber() < 0.5) then
+				camps += 1
+				table.insert(ctx.loot, { position = Decor.campsite(parent, base, rng), table = "Residential" })
+			else
+				stands += 1
+				table.insert(ctx.loot, { position = Decor.huntingStand(parent, base), table = "Farm" })
+			end
+		end
+	end
+end
+
 -- Power poles along roads between towns.
 local function placePoles(field, parent: Instance)
 	for _, road in field.roads do
@@ -429,6 +526,18 @@ local function resolveSpawns(field, def)
 	return spawns
 end
 
+-- Lets distant buildings and trees draw as simplified meshes. Needs Workspace streaming,
+-- and is skipped quietly where the property cannot be set from a script.
+function optimise(root: Instance)
+	for _, model in root:GetDescendants() do
+		if model:IsA("Model") then
+			pcall(function()
+				model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+			end)
+		end
+	end
+end
+
 function MapBuilder.build(mapId: string, onProgress: ((string) -> ())?)
 	local module = Maps:FindFirstChild(mapId)
 	if not module then
@@ -471,8 +580,11 @@ function MapBuilder.build(mapId: string, onProgress: ((string) -> ())?)
 	wrecks.Parent = root
 	placeWrecks(ctx, field, wrecks)
 	placePoles(field, wrecks)
+	placeRoadside(ctx, field, wrecks)
 	progress("Growing forests")
 	placeNature(ctx, field, def, root)
+	placeWilderness(ctx, field, def, root)
+	optimise(root)
 	placeBoundary(field, root)
 
 	local zones = {}

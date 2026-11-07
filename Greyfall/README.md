@@ -125,6 +125,12 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
 
 Towns include **large houses**: two storeys with an inside staircase and a railed stairwell.
 
+Regular houses are split into rooms: a living room at the front (sofa, coffee table, TV,
+shelves, cabinet, lamp) and a bedroom (bed, nightstand, wardrobe), a tiled bathroom (bath,
+toilet, sink and mirror) and a kitchen (counter with wall cabinets, stove, fridge, table) along
+the back. Large houses have a living room and kitchen downstairs, bedrooms and a bathroom
+upstairs.
+
 Every building is furnished: beds, tables, chairs, kitchen counters, fridges, sofas, shelves,
 wardrobes, store aisles, hospital beds, police lockers, bunk beds, warehouse racks, crates,
 barrels and workbenches. Loot sits on the furniture as well as on the floor.
@@ -132,7 +138,12 @@ barrels and workbenches. Loot sits on the furniture as well as on the floor.
 Outside, houses have fenced yards and mailboxes, town streets have lamp posts that light up at
 night, parked cars, benches and bins, roads between towns are lined with power poles, farms
 have hay bales and fenced crop fields, fishing villages have a pier with moored boats, the
-military bases have tents and sandbag walls, and bushes fill the countryside.
+military bases have tents and sandbag walls, and bushes (some flowering or with berries) fill
+the countryside. Long roads have a gas station halfway along, every road has a name board where
+it enters a town, and the forests hide abandoned campsites and hunting stands with loot.
+
+Trees are tall with full crowns: layered pines, white birches with dark bark marks and wide
+maples in autumn colours.
 
 Each town has its own loot (residential, store, medical, police, military, industrial, farm,
 vehicle wrecks) and its own zombie zone. Zones fill up when players come near and empty after
@@ -218,6 +229,18 @@ The server owns every decision: the client only sends requests (use this item, f
 this direction, place this piece here) and the server checks distance, cooldowns, ammo,
 weight and ownership before anything happens.
 
+## Weapons
+
+| Kind | Weapons |
+|---|---|
+| Melee | Kitchen knife, scrap knife, wooden club, frying pan, golf club, baseball bat, crowbar, pipe wrench, shovel, hatchet, machete, fire axe, pickaxe, sledgehammer |
+| Civilian guns (houses, farms, police) | Compact pistol, revolver, double-barrel shotgun, varmint rifle |
+| Service and military guns | Service pistol, pump shotgun, hunting rifle, carbine |
+
+Ammunition: pistol rounds, revolver rounds, small calibre rounds, shotgun shells, rifle rounds.
+The sledgehammer is the strongest melee tool against wooden walls; the hatchet and fire axe
+chop trees fastest; the pipe wrench and crowbar pull scrap off wrecks.
+
 ## Zombies
 
 There are four kinds, all with cube heads, pixel faces and glowing eyes:
@@ -270,6 +293,9 @@ you do not like:
 * Zombie zones only fill when a player is near, zombies far from every player think once a
   second instead of four times, and zombie animation and voices run on clients.
 * World parts have touch events turned off, since nothing uses them.
+* Leaves, bushes and small props cast no shadows and are ignored by raycasts, so aiming and
+  bullets pass through foliage and the renderer does less work. Furniture casts no shadows.
+* Buildings and trees are set to draw as simplified meshes when far away.
 
 ## Not in this first build
 

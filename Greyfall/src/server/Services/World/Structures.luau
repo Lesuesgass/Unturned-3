@@ -302,6 +302,33 @@ Structures.Types = {
 	house = {
 		footprint = 17,
 		build = function(ctx, model, base, info)
+			-- Inner walls: living room at the front; bedroom, bathroom and kitchen at the back.
+			local inner = { color = C(205, 200, 188), material = M.SmoothPlastic }
+			Structures.wall(ctx, model, base * CFrame.new(0, 0.4, 1), 24, 10, 0.5, {
+				Gap(-5.2, 3.6, 7.5),
+				Gap(0, 3.6, 7.5),
+				Gap(9.5, 3.6, 7.5),
+			}, inner)
+			Structures.wall(
+				ctx,
+				model,
+				base * CFrame.new(-3, 0.4, 5) * CFrame.Angles(0, math.pi / 2, 0),
+				7.5,
+				10,
+				0.5,
+				{},
+				inner
+			)
+			Structures.wall(
+				ctx,
+				model,
+				base * CFrame.new(3, 0.4, 5) * CFrame.Angles(0, math.pi / 2, 0),
+				7.5,
+				10,
+				0.5,
+				{},
+				inner
+			)
 			Structures.box(ctx, model, base, {
 				w = 26,
 				d = 20,
@@ -312,8 +339,8 @@ Structures.Types = {
 				floorMaterial = M.WoodPlanks,
 				front = { Door(-5), Window(6) },
 				back = { Window(-6), Window(6) },
-				left = { Window(0) },
-				right = { Window(0) },
+				left = { Window(4) },
+				right = { Window(-4) },
 				roof = "gable",
 				roofH = 6,
 				loot = 2,
@@ -483,6 +510,21 @@ Structures.Types = {
 				Enum.Material.Air
 			)
 			Furniture.furnish(ctx, model, base * CFrame.new(0, floorTop, 0), "large_ground", w, d, lootTable)
+			-- Upstairs bathroom walls in the front right corner.
+			local inner = { color = C(205, 200, 188), material = M.SmoothPlastic }
+			Structures.wall(ctx, model, base * CFrame.new(12.75, upperY, -4.75), 7.5, upperH, 0.5, {}, inner)
+			Structures.wall(
+				ctx,
+				model,
+				base * CFrame.new(9, upperY, -8.75) * CFrame.Angles(0, math.pi / 2, 0),
+				7.5,
+				upperH,
+				0.5,
+				{
+					Gap(0, 3.2, 7),
+				},
+				inner
+			)
 			Furniture.furnish(ctx, model, base * CFrame.new(0, upperY, 0), "large_upper", w, d, lootTable)
 		end,
 	},
@@ -647,6 +689,25 @@ Structures.Types = {
 				loot = 2,
 				interior = "barracks",
 				lootTable = "Military",
+			})
+		end,
+	},
+	-- Gas station shop.
+	kiosk = {
+		footprint = 13,
+		build = function(ctx, model, base)
+			Structures.box(ctx, model, base, {
+				w = 20,
+				d = 14,
+				h = 10,
+				wallColor = C(200, 198, 190),
+				wallMaterial = M.Concrete,
+				front = { Window(-5.5, 6, 2, 8), Door(2) },
+				roof = "flat",
+				sign = "GAS",
+				loot = 1,
+				interior = "kiosk",
+				lootTable = "Store",
 			})
 		end,
 	},
@@ -843,10 +904,33 @@ function Structures.fence(parent: Instance, a: Vector3, b: Vector3)
 end
 
 local TREE_KINDS = {
-	pine = { trunk = C(85, 65, 48), leavesA = C(55, 75, 50), leavesB = C(70, 85, 60), yield = "pine_log" },
-	birch = { trunk = C(215, 210, 198), leavesA = C(120, 140, 70), leavesB = C(150, 160, 85), yield = "birch_log" },
-	maple = { trunk = C(95, 70, 55), leavesA = C(150, 85, 50), leavesB = C(120, 110, 55), yield = "maple_log" },
+	pine = { trunk = C(85, 65, 48), leaves = { C(48, 70, 46), C(58, 80, 52), C(66, 86, 58) }, yield = "pine_log" },
+	birch = {
+		trunk = C(218, 214, 202),
+		leaves = { C(118, 140, 68), C(140, 158, 80), C(160, 165, 88) },
+		yield = "birch_log",
+	},
+	maple = {
+		trunk = C(92, 68, 52),
+		leaves = { C(150, 82, 48), C(170, 110, 52), C(110, 118, 58), C(132, 62, 44) },
+		yield = "maple_log",
+	},
 }
+
+-- Leaves are decoration only: no collisions, no raycasts (bullets and aiming pass through)
+-- and only the largest clumps cast shadows.
+local function leaves(model: Instance, shape: Enum.PartType, size: Vector3, cf: CFrame, color: Color3, shadow: boolean)
+	return newPart("Part", model, {
+		Shape = shape,
+		Size = size,
+		CFrame = cf,
+		Color = color,
+		Material = M.Grass,
+		CanCollide = false,
+		CanQuery = false,
+		CastShadow = shadow,
+	})
+end
 
 -- kind is "pine", "birch" or "maple"; each drops its own kind of log.
 function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
@@ -854,9 +938,9 @@ function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
 	local style = TREE_KINDS[kind] or TREE_KINDS.pine
 	local model = Instance.new("Model")
 	model.Name = "Tree"
-	local scale = rng:NextNumber(0.8, 1.3)
-	local trunkH = (if kind == "pine" then 14 else 11) * scale
-	local girth = (if kind == "birch" then 1.2 else 1.6) * scale
+	local scale = rng:NextNumber(0.85, 1.35)
+	local trunkH = (if kind == "pine" then 24 elseif kind == "birch" then 20 else 17) * scale
+	local girth = (if kind == "birch" then 1.1 elseif kind == "maple" then 2 else 1.7) * scale
 	local trunk = newPart("Part", model, {
 		Name = "Trunk",
 		Shape = Enum.PartType.Cylinder,
@@ -866,35 +950,92 @@ function Structures.tree(ctx, parent: Instance, position: Vector3, kind: string)
 		Material = M.Wood,
 	})
 	trunk:SetAttribute("Resource", "log")
-
 	local parts = { trunk }
-	local green = style.leavesA:Lerp(style.leavesB, rng:NextNumber())
+	local function shade(): Color3
+		return style.leaves[rng:NextInteger(1, #style.leaves)]
+	end
+
 	if kind == "pine" then
-		for layer = 0, 2 do
-			local size = (11 - layer * 3) * scale
-			local leaves = newPart("Part", model, {
-				Size = V(size, 4 * scale, size),
-				CFrame = CFrame.new(position + V(0, (6 + layer * 4.2) * scale, 0))
-					* CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0),
-				Color = green,
-				Material = M.Grass,
-				CanCollide = false,
-			})
-			table.insert(parts, leaves)
+		-- Five tiers of needles, each turned against the one below, narrowing to a tip.
+		local tiers = 5
+		for tier = 0, tiers - 1 do
+			local t = tier / (tiers - 1)
+			local width = (14 - t * 10) * scale
+			local y = (7 + tier * 4) * scale
+			table.insert(
+				parts,
+				leaves(
+					model,
+					Enum.PartType.Block,
+					V(width, 3.6 * scale, width),
+					CFrame.new(position + V(0, y, 0)) * CFrame.Angles(0, math.rad(tier * 27 + rng:NextNumber(0, 15)), 0),
+					shade(),
+					tier < 2
+				)
+			)
 		end
+		table.insert(
+			parts,
+			leaves(
+				model,
+				Enum.PartType.Block,
+				V(2.2, 3.5, 2.2) * scale,
+				CFrame.new(position + V(0, (7 + tiers * 4) * scale, 0)) * CFrame.Angles(0, math.rad(45), 0),
+				shade(),
+				false
+			)
+		)
 	else
-		for _ = 1, 2 do
-			local size = rng:NextNumber(7, 10) * scale
-			local offset = V(rng:NextNumber(-1.5, 1.5), trunkH + rng:NextNumber(-1, 1.5), rng:NextNumber(-1.5, 1.5))
-			local leaves = newPart("Part", model, {
-				Shape = Enum.PartType.Ball,
-				Size = V(size, size * (if kind == "birch" then 1.3 else 1), size),
-				CFrame = CFrame.new(position + offset),
-				Color = green,
-				Material = M.Grass,
+		-- Branches, then a full crown of overlapping leaf clumps.
+		for i = 1, 2 do
+			local angle = rng:NextNumber(0, math.pi * 2)
+			local branch = newPart("Part", model, {
+				Size = V(girth * 0.5, girth * 0.5, 6 * scale),
+				CFrame = CFrame.new(position + V(0, trunkH * (0.55 + i * 0.12), 0))
+					* CFrame.Angles(0, angle, 0)
+					* CFrame.Angles(math.rad(40), 0, 0)
+					* CFrame.new(0, 0, -2.5 * scale),
+				Color = style.trunk,
+				Material = M.Wood,
 				CanCollide = false,
+				CanQuery = false,
+				CastShadow = false,
 			})
-			table.insert(parts, leaves)
+			table.insert(parts, branch)
+		end
+		if kind == "birch" then
+			for _ = 1, 3 do
+				table.insert(
+					parts,
+					newPart("Part", model, {
+						Size = V(girth + 0.05, 0.25, girth * 0.6),
+						CFrame = CFrame.new(position + V(0, rng:NextNumber(2, trunkH * 0.7), 0))
+							* CFrame.Angles(0, rng:NextNumber(0, 6), 0),
+						Color = C(45, 42, 38),
+						Material = M.SmoothPlastic,
+						CanCollide = false,
+						CanQuery = false,
+						CastShadow = false,
+					})
+				)
+			end
+		end
+		local crown = trunkH + 1
+		local spread = (if kind == "maple" then 6 else 4.5) * scale
+		local clumps = if kind == "maple" then 6 else 5
+		for i = 1, clumps do
+			local size = rng:NextNumber(7, 11) * scale * (if i == 1 then 1.3 else 1)
+			local offset = if i == 1
+				then V(0, crown, 0)
+				else V(
+					rng:NextNumber(-spread, spread),
+					crown + rng:NextNumber(-3, 3) * scale,
+					rng:NextNumber(-spread, spread)
+				)
+			table.insert(
+				parts,
+				leaves(model, Enum.PartType.Ball, V(size, size, size), CFrame.new(position + offset), shade(), i <= 2)
+			)
 		end
 	end
 	model.Parent = parent

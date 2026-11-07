@@ -34,6 +34,7 @@ local function part(
 	p.CFrame = cf
 	p.Color = color
 	p.Material = material or M.SmoothPlastic
+	p.CastShadow = false -- indoor props sit in the building's shadow anyway
 	p.Parent = parent
 	return p
 end
@@ -222,20 +223,108 @@ function B.rug(ctx, parent, f, options)
 	part(parent, size, f * CFrame.new(0, 0.04, 0), pick(ctx.rng, FABRICS), M.Fabric, false)
 end
 
+function B.cabinet(ctx, parent, f, options)
+	local width = options and options.width or 3
+	part(parent, V(width, 3, 1.8), f * CFrame.new(0, 1.5, 0), WOOD, M.Wood)
+	part(parent, V(0.08, 2.4, 0.08), f * CFrame.new(0, 1.6, -0.94), DARK_WOOD, M.Wood, false)
+	loot(ctx, f, V(ctx.rng:NextNumber(-width / 2 + 0.5, width / 2 - 0.5), 3.05, 0), 0.6)
+end
+
+-- Kitchen cabinets hung on the wall above a counter.
+function B.wallCabinet(_ctx, parent, f, options)
+	local width = options and options.width or 5
+	part(parent, V(width, 2.2, 1.3), f * CFrame.new(0, 6.3, 0.35), WOOD, M.Wood)
+end
+
+function B.stove(ctx, parent, f)
+	part(parent, V(2.6, 3, 2.4), f * CFrame.new(0, 1.5, 0), C(200, 198, 190), M.SmoothPlastic)
+	part(parent, V(2.6, 0.1, 2.4), f * CFrame.new(0, 3.05, 0), C(40, 40, 40), M.Metal)
+	part(parent, V(2.2, 1.2, 0.1), f * CFrame.new(0, 1.6, -1.22), C(30, 30, 30), M.Glass, false)
+	loot(ctx, f, V(0, 3.15, 0), 0.25)
+end
+
+function B.sink(ctx, parent, f)
+	part(parent, V(2.6, 2.8, 1.8), f * CFrame.new(0, 1.4, 0), C(215, 215, 210), M.SmoothPlastic)
+	part(parent, V(1.8, 0.2, 1.1), f * CFrame.new(0, 2.85, -0.1), C(150, 160, 165), M.Metal, false)
+	part(parent, V(2, 2.2, 0.1), f * CFrame.new(0, 5, 0.85), C(180, 200, 205), M.Glass, false)
+	loot(ctx, f, V(0.8, 2.9, 0.3), 0.3)
+end
+
+function B.toilet(_ctx, parent, f)
+	part(parent, V(1.6, 1.4, 2.2), f * CFrame.new(0, 0.7, -0.2), C(225, 225, 220), M.SmoothPlastic)
+	part(parent, V(1.8, 1.6, 0.7), f * CFrame.new(0, 1.9, 0.7), C(225, 225, 220), M.SmoothPlastic)
+end
+
+function B.bathtub(ctx, parent, f)
+	local white = C(228, 228, 222)
+	part(parent, V(5.5, 0.4, 2.6), f * CFrame.new(0, 0.2, 0), white, M.SmoothPlastic)
+	part(parent, V(5.5, 1.8, 0.3), f * CFrame.new(0, 1, -1.15), white, M.SmoothPlastic)
+	part(parent, V(5.5, 1.8, 0.3), f * CFrame.new(0, 1, 1.15), white, M.SmoothPlastic)
+	part(parent, V(0.3, 1.8, 2.6), f * CFrame.new(-2.6, 1, 0), white, M.SmoothPlastic)
+	part(parent, V(0.3, 1.8, 2.6), f * CFrame.new(2.6, 1, 0), white, M.SmoothPlastic)
+	loot(ctx, f, V(ctx.rng:NextNumber(-1.5, 1.5), 0.45, 0), 0.25)
+end
+
+function B.tvStand(ctx, parent, f)
+	part(parent, V(4.5, 1.8, 1.6), f * CFrame.new(0, 0.9, 0), DARK_WOOD, M.Wood)
+	part(parent, V(3.6, 2.2, 0.25), f * CFrame.new(0, 2.95, 0.3), C(25, 25, 28), M.SmoothPlastic)
+	loot(ctx, f, V(1.6, 1.85, -0.3), 0.3)
+end
+
+function B.coffeeTable(ctx, parent, f)
+	part(parent, V(3.6, 0.3, 2), f * CFrame.new(0, 1.3, 0), WOOD, M.Wood)
+	part(parent, V(3.2, 1.15, 1.6), f * CFrame.new(0, 0.58, 0), DARK_WOOD, M.Wood)
+	loot(ctx, f, V(ctx.rng:NextNumber(-1, 1), 1.47, 0), 0.4)
+end
+
+function B.nightstand(ctx, parent, f)
+	part(parent, V(1.6, 2, 1.6), f * CFrame.new(0, 1, 0), DARK_WOOD, M.Wood)
+	loot(ctx, f, V(0, 2.05, 0), 0.55)
+end
+
+function B.floorLamp(_ctx, parent, f)
+	part(parent, V(0.25, 5.5, 0.25), f * CFrame.new(0, 2.75, 0), C(50, 50, 50), M.Metal, false)
+	part(parent, V(1.4, 1, 1.4), f * CFrame.new(0, 5.7, 0), C(230, 215, 180), M.Fabric, false)
+end
+
+-- A thin floor covering that marks a room (tiles, lino).
+function B.tiles(_ctx, parent, f, options)
+	local size = options and options.size or V(6, 0.06, 6)
+	local color = options and options.color or C(200, 200, 195)
+	part(parent, size, f * CFrame.new(0, 0.03, 0), color, M.Pavement, false)
+end
+
 -- Room layouts for each building type. Coordinates assume the building's own size.
 local LAYOUTS = {
-	house = function(w, d)
+	-- The house is split into a living room at the front, and a bedroom, bathroom and kitchen
+	-- along the back (see the partition walls in Structures).
+	house = function(_w, _d)
 		return {
-			{ "rug", 0, -1 },
-			{ "bed", -w / 2 + 3.2, d / 2 - 4.6, 180 },
-			{ "wardrobe", -w / 2 + 8, d / 2 - 1.6, 180 },
-			{ "table", 6, 0 },
-			{ "chair", 6, -2.6, 0 },
-			{ "chair", 6, 2.6, 180 },
-			{ "counter", w / 2 - 6.5, d / 2 - 1.8, 180, { length = 7 } },
-			{ "fridge", w / 2 - 1.9, d / 2 - 1.8, 180 },
-			{ "sofa", -w / 2 + 2, -1.5, 90 },
-			{ "shelf", w / 2 - 1.3, -4, -90 },
+			-- Living room
+			{ "rug", 6, -4.8, 0, { size = V(7, 0.08, 5) } },
+			{ "sofa", 6, -8, 180 },
+			{ "coffeeTable", 6, -4.8 },
+			{ "tvStand", 6, -1.6, 0 },
+			{ "shelf", 11.3, -4.5, -90 },
+			{ "cabinet", -11.3, -4.5, 90 },
+			{ "floorLamp", 10.6, -8.6 },
+			-- Bedroom
+			{ "bed", -9.5, 5, 180 },
+			{ "nightstand", -11.2, 2.2 },
+			{ "wardrobe", -5.2, 7.9, 180 },
+			-- Bathroom
+			{ "tiles", 0, 5, 0, { size = V(5.5, 0.06, 7.5), color = C(205, 210, 210) } },
+			{ "bathtub", 0, 7.6, 180 },
+			{ "toilet", -1.9, 3.5, 90 },
+			{ "sink", 2.1, 3.5, -90 },
+			-- Kitchen
+			{ "tiles", 7.5, 5, 0, { size = V(8.5, 0.06, 7.5), color = C(170, 160, 140) } },
+			{ "counter", 9, 8, 180, { length = 5 } },
+			{ "wallCabinet", 9, 8, 180, { width = 5 } },
+			{ "stove", 5.2, 8, 180 },
+			{ "fridge", 10.7, 2.6, -90 },
+			{ "table", 6.2, 4.5, 90 },
+			{ "chair", 8.6, 4.5, -90 },
 		}
 	end,
 	cabin = function(w, d)
@@ -249,26 +338,42 @@ local LAYOUTS = {
 	end,
 	large_ground = function(w, d)
 		return {
+			-- Living room
 			{ "rug", 4, -2, 0, { size = V(9, 0.08, 6) } },
 			{ "sofa", 4, -6.5, 180 },
-			{ "table", 4, 3 },
-			{ "chair", 4, 0.5, 0 },
-			{ "chair", 4, 5.5, 180 },
-			{ "counter", w / 2 - 1.8, 4, -90, { length = 9 } },
-			{ "fridge", w / 2 - 1.8, -2.5, -90 },
+			{ "coffeeTable", 4, -3.2 },
+			{ "tvStand", 4, 1.2, 0 },
 			{ "shelf", -w / 2 + 1.3, -5, 90 },
+			{ "cabinet", -w / 2 + 1.3, -9.5, 90 },
+			{ "floorLamp", -2, -11 },
+			-- Kitchen along the right wall
+			{ "tiles", w / 2 - 4.5, 5, 0, { size = V(8, 0.06, 15), color = C(170, 160, 140) } },
+			{ "counter", w / 2 - 1.8, 4, -90, { length = 9 } },
+			{ "wallCabinet", w / 2 - 1.8, 4, -90, { width = 9 } },
+			{ "stove", w / 2 - 1.8, 10, -90 },
+			{ "fridge", w / 2 - 1.8, -2.5, -90 },
+			{ "table", 8, 6, 90 },
+			{ "chair", 10.4, 6, -90 },
+			{ "chair", 5.6, 6, 90 },
 			{ "desk", -w / 2 + 9.5, d / 2 - 1.7, 180 },
 		}
 	end,
 	large_upper = function(w, d)
 		return {
+			-- Bedrooms
 			{ "bed", w / 2 - 3.2, d / 2 - 4.6, 180 },
-			{ "bed", w / 2 - 3.2, -d / 2 + 4.6, 0 },
-			{ "wardrobe", 2, d / 2 - 1.6, 180 },
+			{ "bed", 6.5, d / 2 - 4.6, 180 },
+			{ "nightstand", 9.6, d / 2 - 1.6 },
+			{ "wardrobe", 0.5, d / 2 - 1.6, 180 },
 			{ "desk", 2, -d / 2 + 1.7, 0 },
 			{ "chair", 2, -d / 2 + 3.6, 180 },
-			{ "rug", 6, 0, 90, { size = V(8, 0.08, 5) } },
+			{ "rug", 4, 0, 90, { size = V(8, 0.08, 5) } },
 			{ "shelf", -w / 2 + 8.5, -3, 90 },
+			-- Bathroom in the front right corner (walls in Structures)
+			{ "tiles", 12.5, -8.5, 0, { size = V(7, 0.06, 7), color = C(205, 210, 210) } },
+			{ "bathtub", 12.5, -11, 0 },
+			{ "toilet", 15, -6.4, 180 },
+			{ "sink", 11, -6.2, 180 },
 		}
 	end,
 	store = function(w, d)
@@ -338,6 +443,15 @@ local LAYOUTS = {
 			{ "workbench", w / 2 - 2, 4, -90 },
 			{ "crate", 12, -7 },
 			{ "barrel", 9, 9 },
+		}
+	end,
+	kiosk = function(w, d)
+		return {
+			{ "aisle", -3, 1, 0, { length = 7 } },
+			{ "aisle", 3, 1, 0, { length = 7 } },
+			{ "counter", w / 2 - 4, -d / 2 + 3.2, 0, { length = 5 } },
+			{ "fridge", -w / 2 + 1.9, d / 2 - 2, 90 },
+			{ "fridge", -w / 2 + 4.6, d / 2 - 2, 180 },
 		}
 	end,
 	shed = function(w, d)

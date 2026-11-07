@@ -47,10 +47,10 @@ local function setVisible(record, visible: boolean)
 			if saved then
 				part.Transparency = saved.transparency
 				part.CanCollide = saved.collide
+				part.CanQuery = saved.query
 			end
-			part.CanQuery = true
 		else
-			record.saved[part] = { transparency = part.Transparency, collide = part.CanCollide }
+			record.saved[part] = { transparency = part.Transparency, collide = part.CanCollide, query = part.CanQuery }
 			part.Transparency = 1
 			part.CanCollide = false
 			part.CanQuery = false

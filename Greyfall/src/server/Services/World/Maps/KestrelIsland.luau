@@ -12,7 +12,7 @@ return {
 	noiseScale = 340,
 	forestScale = 220,
 	forestThreshold = 0.05,
-	treeAttempts = 2400,
+	treeAttempts = 2100,
 	snowline = math.huge,
 
 	towns = {

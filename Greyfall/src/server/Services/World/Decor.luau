@@ -25,6 +25,8 @@ local function part(
 	p.CFrame = cf
 	p.Color = color
 	p.Material = material or M.SmoothPlastic
+	-- Small props skip shadows; tall ones opt back in where it matters.
+	p.CastShadow = size.Magnitude > 9
 	if props then
 		for key, value in props do
 			(p :: any)[key] = value
@@ -210,22 +212,142 @@ function Decor.tent(parent: Instance, base: CFrame)
 	end
 end
 
+-- A bush of two or three overlapping clumps; some carry berries or flowers.
 function Decor.bush(parent: Instance, position: Vector3, rng: Random)
-	local size = rng:NextNumber(2.5, 5)
-	local greens = { C(78, 100, 58), C(95, 110, 62), C(70, 88, 55) }
-	part(
-		parent,
-		V(size * 1.3, size * 0.8, size),
-		CFrame.new(position + V(0, size * 0.25, 0)) * CFrame.Angles(0, rng:NextNumber(0, 3), 0),
-		greens[rng:NextInteger(1, #greens)],
-		M.Grass,
-		{
+	local greens = { C(78, 100, 58), C(95, 110, 62), C(70, 88, 55), C(105, 112, 66) }
+	local base = rng:NextNumber(2.5, 4.5)
+	local clumps = rng:NextInteger(2, 3)
+	local top = 0
+	for i = 1, clumps do
+		local size = base * (if i == 1 then 1 else rng:NextNumber(0.6, 0.85))
+		local offset = if i == 1
+			then V(0, size * 0.3, 0)
+			else V(rng:NextNumber(-1.2, 1.2), size * 0.35, rng:NextNumber(-1.2, 1.2)) * base / 3
+		top = math.max(top, offset.Y + size / 2)
+		part(parent, V(size, size, size), CFrame.new(position + offset), greens[rng:NextInteger(1, #greens)], M.Grass, {
 			Shape = Enum.PartType.Ball,
 			CanCollide = false,
 			CastShadow = false,
 			CanQuery = false,
-		}
+		})
+	end
+	if rng:NextNumber() < 0.3 then
+		local dots = { C(150, 40, 45), C(210, 200, 120), C(180, 120, 170), C(235, 235, 230) }
+		local color = dots[rng:NextInteger(1, #dots)]
+		for _ = 1, 3 do
+			local angle = rng:NextNumber(0, math.pi * 2)
+			local spot = position
+				+ V(math.cos(angle) * base * 0.45, top * rng:NextNumber(0.5, 0.9), math.sin(angle) * base * 0.45)
+			part(parent, V(0.5, 0.5, 0.5), CFrame.new(spot), color, M.SmoothPlastic, {
+				Shape = Enum.PartType.Ball,
+				CanCollide = false,
+				CastShadow = false,
+				CanQuery = false,
+			})
+		end
+	end
+end
+
+-- Gas station forecourt: a roof on four pillars over two pumps. base faces the road.
+function Decor.gasCanopy(parent: Instance, base: CFrame)
+	local white = C(200, 198, 190)
+	for _, corner in { { -9, -5 }, { 9, -5 }, { -9, 5 }, { 9, 5 } } do
+		part(parent, V(0.8, 12, 0.8), base * CFrame.new(corner[1], 6, corner[2]), white, M.Concrete)
+	end
+	part(parent, V(22, 1.2, 14), base * CFrame.new(0, 12.6, 0), C(150, 55, 45), M.SmoothPlastic)
+	for _, x in { -4, 4 } do
+		part(parent, V(1.6, 0.4, 3.4), base * CFrame.new(x, 0.2, 0), C(120, 120, 115), M.Concrete)
+		part(parent, V(1.2, 4.2, 1.8), base * CFrame.new(x, 2.5, 0), C(185, 70, 55), M.SmoothPlastic)
+		part(parent, V(1.25, 1, 1.85), base * CFrame.new(x, 3.6, 0), C(40, 40, 40), M.Glass)
+	end
+end
+
+-- Abandoned campsite: a tent, logs round a cold fire pit and a supply crate.
+function Decor.campsite(parent: Instance, base: CFrame, rng: Random): Vector3
+	Decor.tent(parent, base * CFrame.new(0, 0, 6) * CFrame.Angles(0, rng:NextNumber(-0.3, 0.3), 0))
+	for i = 0, 5 do
+		local a = i / 6 * math.pi * 2
+		part(
+			parent,
+			V(0.9, 0.7, 0.9),
+			base * CFrame.new(math.cos(a) * 1.6, 0.35, math.sin(a) * 1.6),
+			C(105, 102, 96),
+			M.Rock,
+			{ CastShadow = false }
+		)
+	end
+	part(
+		parent,
+		V(1.6, 0.3, 1.6),
+		base * CFrame.new(0, 0.15, 0),
+		C(30, 28, 26),
+		M.Slate,
+		{ CanCollide = false, CastShadow = false }
 	)
+	for _, a in { 0.4, 2.3, 4.2 } do
+		local log = part(
+			parent,
+			V(4, 1.1, 1.1),
+			base * CFrame.new(math.cos(a) * 4.2, 0.55, math.sin(a) * 4.2) * CFrame.Angles(0, -a + math.pi / 2, 0),
+			C(100, 76, 54),
+			M.Wood
+		)
+		log.Shape = Enum.PartType.Cylinder
+	end
+	local crate = base * CFrame.new(5.5, 0, -1)
+	part(parent, V(2.4, 2.4, 2.4), crate * CFrame.new(0, 1.2, 0), C(130, 100, 64), M.WoodPlanks)
+	return (crate * CFrame.new(0, 2.45, 0)).Position
+end
+
+-- Wooden hunting stand with a ladder. Returns the loot spot on its platform.
+function Decor.huntingStand(parent: Instance, base: CFrame): Vector3
+	local wood = C(105, 85, 62)
+	local h = 14
+	for _, corner in { { -2.5, -2.5 }, { 2.5, -2.5 }, { -2.5, 2.5 }, { 2.5, 2.5 } } do
+		part(parent, V(0.6, h + 5, 0.6), base * CFrame.new(corner[1], (h + 5) / 2, corner[2]), wood, M.Wood)
+	end
+	part(parent, V(6.4, 0.5, 6.4), base * CFrame.new(0, h, 0), wood, M.WoodPlanks)
+	for _, side in { { 0, 3.1, 6.4, 0.25 }, { -3.1, 0, 0.25, 6.4 }, { 3.1, 0, 0.25, 6.4 } } do
+		part(parent, V(side[3], 2.2, side[4]), base * CFrame.new(side[1], h + 1.35, side[2]), wood, M.WoodPlanks)
+	end
+	part(parent, V(7, 0.4, 7), base * CFrame.new(0, h + 5.2, 0), C(70, 80, 55), M.Fabric)
+	local ladder = Instance.new("TrussPart")
+	ladder.Anchored = true
+	ladder.CanTouch = false
+	ladder.Size = V(2, h, 2)
+	ladder.CFrame = base * CFrame.new(0, h / 2, -4.2)
+	ladder.Color = wood
+	ladder.Material = M.Wood
+	ladder.Parent = parent
+	return (base * CFrame.new(1.2, h + 0.3, 1.2)).Position
+end
+
+-- Town name board where a road enters a town.
+function Decor.signpost(parent: Instance, base: CFrame, text: string)
+	part(parent, V(0.4, 7, 0.4), base * CFrame.new(-3.2, 3.5, 0), C(80, 80, 78), M.Metal)
+	part(parent, V(0.4, 7, 0.4), base * CFrame.new(3.2, 3.5, 0), C(80, 80, 78), M.Metal)
+	local board = part(parent, V(7.4, 2.2, 0.25), base * CFrame.new(0, 6, 0), C(55, 85, 60), M.SmoothPlastic)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.Parent = board
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Text = string.upper(text)
+		label.TextScaled = true
+		label.Font = Enum.Font.SourceSansBold
+		label.TextColor3 = C(235, 235, 225)
+		label.Parent = gui
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0.18, 0)
+		pad.PaddingBottom = UDim.new(0.18, 0)
+		pad.PaddingLeft = UDim.new(0.05, 0)
+		pad.PaddingRight = UDim.new(0.05, 0)
+		pad.Parent = label
+	end
 end
 
 return Decor
