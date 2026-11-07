@@ -109,6 +109,15 @@ local function melee(player: Player, state, def, direction: Vector3)
 	end
 	state.lastAttack = now
 
+	-- Every client animates the swing from these attributes (see client/Controllers/Fists).
+	-- Punches alternate hands; weapons always swing with the right.
+	local hand = "Right"
+	if def == Items.Fists then
+		hand = if character:GetAttribute("SwingHand") == "Right" then "Left" else "Right"
+	end
+	character:SetAttribute("SwingHand", hand)
+	character:SetAttribute("SwingAt", workspace:GetServerTimeNow())
+
 	local origin = head.Position
 	Effects.sound("MeleeSwing", origin)
 	local result = workspace:Spherecast(origin, 1.2, direction * def.range, hitParams(character))

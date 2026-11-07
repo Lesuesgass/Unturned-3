@@ -20,6 +20,7 @@ local Aim = require(script.Parent.Aim)
 local State = require(script.Parent.State)
 local Build = require(script.Parent.Build)
 local Interaction = require(script.Parent.Interaction)
+local Fists = require(script.Parent.Fists)
 
 local InputController = {}
 
@@ -71,6 +72,9 @@ local function primary()
 			if direction then
 				lastShot = now
 				attack:FireServer("Melee", direction)
+				if def == Items.Fists then
+					Fists.punch()
+				end
 			end
 		end
 	elseif def.category == "Gun" then
