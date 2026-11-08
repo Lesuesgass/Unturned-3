@@ -21,6 +21,10 @@ local menuFrame: Frame
 local waitFrame: Frame
 local waitTitle: TextLabel
 local waitDetail: TextLabel
+local waitFill: Frame
+
+-- Loading stages in the order the server reports them, for the progress bar.
+local STAGES = { "Shaping the terrain", "Building towns", "Growing forests", "Spawning loot and zombies" }
 
 local choice = {
 	mode = Config.DefaultMode,
@@ -42,7 +46,7 @@ local function sectionTitle(parent: Instance, order: number, text: string)
 		Text = text,
 		FontFace = Theme.FontBold,
 		TextSize = Theme.SmallTextSize,
-		TextColor3 = Theme.Accent,
+		TextColor3 = Theme.TextDim,
 		Size = UDim2.new(1, 0, 0, 24),
 		TextYAlignment = Enum.TextYAlignment.Bottom,
 		LayoutOrder = order,
@@ -54,7 +58,7 @@ end
 local function optionRow(parent: Instance, order: number, options, key: string)
 	local row = Ui.new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 34),
+		Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
 		LayoutOrder = order,
 		Parent = parent,
 	})
@@ -66,7 +70,7 @@ local function optionRow(parent: Instance, order: number, options, key: string)
 	})
 	local description = Ui.label({
 		TextColor3 = Theme.TextDim,
-		TextSize = Theme.SmallTextSize + 1,
+		TextSize = Theme.SmallTextSize,
 		TextWrapped = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		Size = UDim2.new(1, 0, 0, 36),
@@ -83,7 +87,7 @@ local function optionRow(parent: Instance, order: number, options, key: string)
 			button.BackgroundColor3 = if selected then Theme.PanelHover else Theme.PanelLight
 			if stroke then
 				stroke.Color = if selected then Theme.Accent else Theme.Line
-				stroke.Transparency = if selected then 0 else 0.5
+				stroke.Transparency = if selected then 0 else 1
 			end
 		end
 		for _, option in options do
@@ -142,7 +146,7 @@ local function buildMenu()
 	Ui.label({
 		Text = "GREYFALL",
 		FontFace = Theme.FontBold,
-		TextSize = 44,
+		TextSize = Theme.HeroTextSize,
 		Size = UDim2.new(1, 0, 0, 48),
 		LayoutOrder = 1,
 		Parent = column,
@@ -171,21 +175,21 @@ local function buildMenu()
 	optionRow(column, 31, difficulties, "difficulty")
 
 	Ui.new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 10), LayoutOrder = 40, Parent = column })
-	local start = Ui.button({
-		Text = "START",
+	local start
+	start = Ui.button({
+		Text = "START GAME",
 		FontFace = Theme.FontBold,
 		TextSize = Theme.TitleTextSize,
-		Size = UDim2.new(1, 0, 0, 44),
+		Size = UDim2.new(1, 0, 0, 52),
 		LayoutOrder = 41,
 		Parent = column,
 	}, function()
+		-- Show the click registered while the server starts building the world.
+		start.Active = false
+		start.Text = "STARTING"
 		Net.get("Setup"):FireServer(choice.mode, choice.map, choice.difficulty)
 	end)
-	local stroke = start:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Color = Theme.Accent
-		stroke.Transparency = 0
-	end
+	Ui.makePrimary(start)
 end
 
 local function buildWaiting()
@@ -199,7 +203,7 @@ local function buildWaiting()
 	waitTitle = Ui.label({
 		Text = "GREYFALL",
 		FontFace = Theme.FontBold,
-		TextSize = 30,
+		TextSize = Theme.DisplayTextSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.45),
@@ -213,6 +217,20 @@ local function buildWaiting()
 		Position = UDim2.fromScale(0.5, 0.51),
 		Size = UDim2.fromOffset(500, 20),
 		Parent = waitFrame,
+	})
+	local track = Ui.new("Frame", {
+		BackgroundColor3 = Theme.PanelLight,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.56),
+		Size = UDim2.fromOffset(320, 4),
+		Parent = waitFrame,
+	})
+	waitFill = Ui.new("Frame", {
+		BackgroundColor3 = Theme.Accent,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(0, 1),
+		Parent = track,
 	})
 end
 
@@ -245,11 +263,14 @@ local function refresh()
 	if state == "Menu" then
 		waitTitle.Text = "GREYFALL"
 		waitDetail.Text = "Waiting for the host to choose the game settings"
+		waitFill.Size = UDim2.fromScale(0, 1)
 	else
 		local map = workspace:GetAttribute("MapName") or mapName(choice.map)
 		local difficulty = workspace:GetAttribute("Difficulty") or choice.difficulty
 		waitTitle.Text = string.upper(map) .. "   " .. string.upper(difficulty)
 		waitDetail.Text = workspace:GetAttribute("LoadingStage") or "Preparing the world"
+		local stage = table.find(STAGES, workspace:GetAttribute("LoadingStage")) or 0
+		waitFill.Size = UDim2.fromScale(stage / #STAGES, 1)
 	end
 end
 

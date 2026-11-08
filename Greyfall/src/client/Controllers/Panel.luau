@@ -48,7 +48,6 @@ local function scrolling(parent: Instance, position: UDim2, size: UDim2): Scroll
 		ScrollBarImageColor3 = Theme.Line,
 		Parent = parent,
 	})
-	Ui.stroke(0.5).Parent = frame
 	Ui.padding(4).Parent = frame
 	Ui.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = frame })
 	return frame
@@ -63,7 +62,7 @@ local function row(
 	onClick: () -> ()
 ): TextButton
 	local button = Ui.button({
-		Size = UDim2.new(1, -4, 0, 26),
+		Size = UDim2.new(1, -4, 0, Theme.ControlHeight),
 		LayoutOrder = order,
 		BackgroundColor3 = if selected then Theme.PanelHover else Theme.PanelLight,
 		Parent = parent,
@@ -77,7 +76,7 @@ local function row(
 	end
 	Ui.label({
 		Text = left,
-		TextSize = Theme.SmallTextSize + 1,
+		TextSize = Theme.SmallTextSize,
 		Position = UDim2.fromOffset(8, 0),
 		Size = UDim2.new(1, -90, 1, 0),
 		Parent = button,
@@ -99,7 +98,7 @@ local function header(parent: Instance, order: number, text: string)
 		Text = text,
 		FontFace = Theme.FontBold,
 		TextSize = Theme.SmallTextSize,
-		TextColor3 = Theme.Accent,
+		TextColor3 = Theme.TextDim,
 		Size = UDim2.new(1, -4, 0, 20),
 		LayoutOrder = order,
 		Parent = parent,
@@ -107,7 +106,12 @@ local function header(parent: Instance, order: number, text: string)
 end
 
 local function detailButton(text: string, order: number, onClick: () -> ()): TextButton
-	return Ui.button({ Text = text, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = order, Parent = details }, onClick)
+	local button = Ui.button({ Text = text, LayoutOrder = order, Parent = details }, onClick)
+	if order == 10 then
+		-- Order 10 is always the item's main action (eat, use, equip, wear, take).
+		Ui.makePrimary(button)
+	end
+	return button
 end
 
 local function stackLabel(stack): (string, string)
@@ -172,7 +176,7 @@ local function inventoryDetails()
 	Ui.label({
 		Text = def.name,
 		FontFace = Theme.FontBold,
-		TextSize = Theme.TitleTextSize - 2,
+		TextSize = Theme.TitleTextSize,
 		Size = UDim2.new(1, 0, 0, 22),
 		LayoutOrder = 1,
 		Parent = details,
@@ -238,7 +242,12 @@ local function inventoryDetails()
 		})
 		local slotRow = Ui.new(
 			"Frame",
-			{ BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = 12, Parent = details }
+			{
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
+				LayoutOrder = 12,
+				Parent = details,
+			}
 		)
 		Ui.new(
 			"UIListLayout",
@@ -288,7 +297,7 @@ local function craftDetails()
 	Ui.label({
 		Text = title,
 		FontFace = Theme.FontBold,
-		TextSize = Theme.TitleTextSize - 2,
+		TextSize = Theme.TitleTextSize,
 		Size = UDim2.new(1, 0, 0, 22),
 		LayoutOrder = 1,
 		Parent = details,
@@ -313,8 +322,8 @@ local function craftDetails()
 		ready = ready and have >= input.count
 		Ui.label({
 			Text = `{def and def.name or input.id}   {have} / {input.count}`,
-			TextSize = Theme.SmallTextSize + 1,
-			TextColor3 = if have >= input.count then Theme.Text else Theme.Danger,
+			TextSize = Theme.SmallTextSize,
+			TextColor3 = if have >= input.count then Theme.Text else Theme.DangerText,
 			Size = UDim2.new(1, 0, 0, 18),
 			LayoutOrder = order,
 			Parent = details,
@@ -330,8 +339,8 @@ local function craftDetails()
 			ready = ready and have
 			Ui.label({
 				Text = def and def.name or tool,
-				TextSize = Theme.SmallTextSize + 1,
-				TextColor3 = if have then Theme.Text else Theme.Danger,
+				TextSize = Theme.SmallTextSize,
+				TextColor3 = if have then Theme.Text else Theme.DangerText,
 				Size = UDim2.new(1, 0, 0, 18),
 				LayoutOrder = order,
 				Parent = details,
@@ -342,6 +351,9 @@ local function craftDetails()
 		action:FireServer("Craft", recipe.id)
 	end)
 	button.Active = ready
+	if ready then
+		Ui.makePrimary(button)
+	end
 	button.TextColor3 = if ready then Theme.Text else Theme.TextDim
 end
 
@@ -407,14 +419,19 @@ local function fillCrafting()
 	-- Category switcher across the top of the list.
 	local bar = Ui.new(
 		"Frame",
-		{ BackgroundTransparency = 1, Size = UDim2.new(1, -4, 0, 26), LayoutOrder = 0, Parent = listFrame }
+		{
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -4, 0, Theme.ControlHeight),
+			LayoutOrder = 0,
+			Parent = listFrame,
+		}
 	)
 	Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 3), Parent = bar })
 	for index, category in Recipes.Categories do
 		local active = category == craftCategory
 		local button = Ui.button({
 			Text = category,
-			TextSize = Theme.SmallTextSize - 1,
+			TextSize = Theme.CaptionTextSize,
 			Size = UDim2.new(1 / #Recipes.Categories, -3, 1, 0),
 			LayoutOrder = index,
 			BackgroundColor3 = if active then Theme.PanelHover else Theme.PanelLight,
@@ -543,8 +560,8 @@ function Panel.init()
 			Text = entry[2],
 			FontFace = Theme.FontBold,
 			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(12 + (index - 1) * 150, 8),
-			Size = UDim2.fromOffset(140, 26),
+			Position = UDim2.fromOffset(12 + (index - 1) * 150, 6),
+			Size = UDim2.fromOffset(140, Theme.ControlHeight),
 			Parent = root,
 		}, function()
 			tab = entry[1]
@@ -553,6 +570,8 @@ function Panel.init()
 		end)
 	end
 	weightLabel = Ui.label({
+		FontFace = Theme.FontNumbers,
+		TextSize = Theme.SmallTextSize,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = Theme.TextDim,
 		Position = UDim2.new(1, -212, 0, 10),
@@ -560,19 +579,19 @@ function Panel.init()
 		Parent = root,
 	})
 
-	listFrame = scrolling(root, UDim2.fromOffset(12, 42), UDim2.new(0, 300, 1, -54))
+	listFrame = scrolling(root, UDim2.fromOffset(12, 60), UDim2.new(0, 300, 1, -72))
 	details = Ui.new("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(324, 42),
-		Size = UDim2.new(0, 220, 1, -54),
+		Position = UDim2.fromOffset(324, 60),
+		Size = UDim2.new(0, 220, 1, -72),
 		Parent = root,
 	})
 	Ui.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = details })
 
 	storageColumn = Ui.new("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(556, 42),
-		Size = UDim2.new(0, 232, 1, -54),
+		Position = UDim2.fromOffset(556, 60),
+		Size = UDim2.new(0, 232, 1, -72),
 		Visible = false,
 		Parent = root,
 	})

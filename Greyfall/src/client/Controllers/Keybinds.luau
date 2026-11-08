@@ -104,7 +104,7 @@ local function build(gui: ScreenGui)
 			Text = section.title,
 			FontFace = Theme.FontBold,
 			TextSize = Theme.SmallTextSize,
-			TextColor3 = Theme.Accent,
+			TextColor3 = Theme.TextDim,
 			Size = UDim2.new(1, 0, 0, 22),
 			TextYAlignment = Enum.TextYAlignment.Bottom,
 			LayoutOrder = nextOrder(),
@@ -123,7 +123,6 @@ local function build(gui: ScreenGui)
 				Size = UDim2.fromOffset(150, 20),
 				Parent = row,
 			})
-			Ui.stroke(0.5).Parent = key
 			Ui.label({
 				Text = entry[1],
 				FontFace = Theme.FontMedium,
@@ -134,7 +133,7 @@ local function build(gui: ScreenGui)
 			})
 			Ui.label({
 				Text = entry[2],
-				TextSize = Theme.SmallTextSize + 1,
+				TextSize = Theme.SmallTextSize,
 				Position = UDim2.fromOffset(164, 0),
 				Size = UDim2.new(1, -164, 1, 0),
 				Parent = row,

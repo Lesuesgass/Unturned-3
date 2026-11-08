@@ -67,7 +67,8 @@ local function buildStats()
 		})
 		local value = Ui.label({
 			Text = "100",
-			TextSize = Theme.SmallTextSize,
+			FontFace = Theme.FontNumbers,
+			TextSize = Theme.CaptionTextSize,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Position = UDim2.new(1, -40, 0, 0),
 			Size = UDim2.new(0, 40, 0, 12),
@@ -88,7 +89,7 @@ local function buildStats()
 	end
 	statusLabel = Ui.label({
 		Text = "",
-		TextColor3 = Theme.Danger,
+		TextColor3 = Theme.DangerText,
 		FontFace = Theme.FontBold,
 		TextSize = Theme.SmallTextSize,
 		Size = UDim2.new(1, 0, 0, 14),
@@ -112,7 +113,7 @@ local function buildHotbar()
 		local slot = Ui.panel({ Size = UDim2.fromOffset(112, 48), LayoutOrder = i, Parent = holder })
 		Ui.label({
 			Text = tostring(i),
-			TextSize = Theme.SmallTextSize - 1,
+			TextSize = Theme.CaptionTextSize,
 			TextColor3 = Theme.TextDim,
 			Position = UDim2.fromOffset(6, 3),
 			Size = UDim2.fromOffset(12, 12),
@@ -129,7 +130,7 @@ local function buildHotbar()
 		})
 		local detail = Ui.label({
 			Text = "",
-			TextSize = Theme.SmallTextSize - 2,
+			TextSize = Theme.CaptionTextSize,
 			TextColor3 = Theme.TextDim,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Position = UDim2.new(0, 6, 1, -15),
@@ -156,6 +157,7 @@ local function buildEquipped()
 	})
 	equippedAmmo = Ui.label({
 		TextXAlignment = Enum.TextXAlignment.Right,
+		FontFace = Theme.FontNumbers,
 		TextSize = Theme.TitleTextSize,
 		Position = UDim2.fromOffset(0, 20),
 		Size = UDim2.new(1, 0, 0, 22),
@@ -238,7 +240,7 @@ local function buildOverlays()
 	Ui.label({
 		Text = "YOU DIED",
 		FontFace = Theme.FontBold,
-		TextSize = 34,
+		TextSize = Theme.DisplayTextSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.45),
@@ -268,7 +270,7 @@ end
 function Hud.notify(text: string)
 	local label = Ui.label({
 		Text = text,
-		TextSize = Theme.SmallTextSize + 1,
+		TextSize = Theme.SmallTextSize,
 		Size = UDim2.new(1, 0, 0, 18),
 		LayoutOrder = math.floor(os.clock() * 100),
 		Parent = notifyList,
@@ -305,7 +307,7 @@ local function refreshHotbar()
 		end
 		local active = State.equipped == i
 		slot.stroke.Color = if active then Theme.Accent else Theme.Line
-		slot.stroke.Transparency = if active then 0 else 0.3
+		slot.stroke.Transparency = if active then 0 else 1
 		slot.stroke.Thickness = if active then 2 else 1
 	end
 end
@@ -352,7 +354,7 @@ local function buildBossBar()
 	bossLabel = Ui.label({
 		Text = "BEHEMOTH",
 		FontFace = Theme.FontBold,
-		TextSize = Theme.SmallTextSize + 1,
+		TextSize = Theme.SmallTextSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.new(1, 0, 0, 16),
 		Parent = bossFrame,
@@ -364,7 +366,6 @@ local function buildBossBar()
 		Size = UDim2.new(1, 0, 0, 7),
 		Parent = bossFrame,
 	})
-	Ui.stroke(0.4).Parent = track
 	bossFill = Ui.new(
 		"Frame",
 		{ BackgroundColor3 = Theme.Danger, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), Parent = track }

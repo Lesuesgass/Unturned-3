@@ -5,6 +5,13 @@ local Theme = require(ReplicatedStorage.Shared.Theme)
 
 local Ui = {}
 
+-- The one filled, accent-coloured button on a screen: the main action.
+function Ui.makePrimary(button: TextButton)
+	button.BackgroundColor3 = Theme.Accent
+	button.TextColor3 = Theme.Panel
+	button:SetAttribute("Primary", true)
+end
+
 function Ui.new(className: string, props: { [string]: any }, children: { Instance }?): any
 	local instance = Instance.new(className)
 	for key, value in props do
@@ -21,11 +28,13 @@ function Ui.new(className: string, props: { [string]: any }, children: { Instanc
 	return instance
 end
 
+-- Panels and buttons are set apart by their fill alone. The stroke exists so a selected or
+-- active element can light it up in the accent colour; it is invisible otherwise.
 function Ui.stroke(transparency: number?): UIStroke
 	return Ui.new("UIStroke", {
 		Color = Theme.Line,
 		Thickness = 1,
-		Transparency = transparency or 0.3,
+		Transparency = transparency or 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 end
@@ -79,9 +88,10 @@ function Ui.button(props: { [string]: any }, onClick: () -> ()): TextButton
 		AutoButtonColor = false,
 		BackgroundColor3 = Theme.PanelLight,
 		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
 		FontFace = Theme.FontMedium,
 		TextColor3 = Theme.Text,
-		TextSize = Theme.SmallTextSize + 1,
+		TextSize = Theme.SmallTextSize,
 		Text = "",
 	})
 	for key, value in props do
@@ -89,14 +99,16 @@ function Ui.button(props: { [string]: any }, onClick: () -> ()): TextButton
 			(button :: any)[key] = value
 		end
 	end
-	Ui.stroke(0.5).Parent = button
+	Ui.stroke().Parent = button
 	button.MouseEnter:Connect(function()
-		if button.Active then
+		if button.Active and not button:GetAttribute("Primary") then
 			button.BackgroundColor3 = Theme.PanelHover
 		end
 	end)
 	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = props.BackgroundColor3 or Theme.PanelLight
+		if not button:GetAttribute("Primary") then
+			button.BackgroundColor3 = props.BackgroundColor3 or Theme.PanelLight
+		end
 	end)
 	button.Activated:Connect(function()
 		if button.Active then
