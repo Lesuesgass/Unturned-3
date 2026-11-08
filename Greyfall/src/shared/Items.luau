@@ -838,7 +838,7 @@ Items.Fists = {
 	damageMax = 21,
 	damage = 18,
 	range = 4.5,
-	cooldown = 0.55,
+	cooldown = 0.4,
 	noHeadshot = true,
 	bleedChance = 0,
 	gather = { log = 2 },

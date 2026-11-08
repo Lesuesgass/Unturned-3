@@ -103,7 +103,7 @@ function decorateTown(ctx, field, town, folder: Instance, placed)
 					local lx, lz = spot(Terrain.RoadHalfWidth + 2)
 					if clearOf(placed, lx, lz, 2) then
 						local ground = V(lx, field:height(lx, lz), lz)
-						Decor.streetLamp(folder, CFrame.lookAt(ground, ground - V(nx, 0, nz)))
+						Decor.streetLamp(folder, CFrame.lookAt(ground, ground - V(nx, 0, nz)), step % 4 == 0)
 					end
 				end
 				if urban and rng:NextNumber() < 0.3 then
@@ -463,7 +463,7 @@ local function placeNature(ctx, field, def, parent: Instance)
 	local bushes = Instance.new("Folder")
 	bushes.Name = "Bushes"
 	bushes.Parent = parent
-	for _ = 1, math.floor(def.treeAttempts * 0.6) do
+	for _ = 1, math.floor(def.treeAttempts * 0.35) do
 		local x = rng:NextNumber(-half + 20, half - 20)
 		local z = rng:NextNumber(-half + 20, half - 20)
 		local h = field:height(x, z)

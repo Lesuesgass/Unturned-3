@@ -13,7 +13,7 @@ return {
 	noiseScale = 420,
 	forestScale = 280,
 	forestThreshold = 0,
-	treeAttempts = 4400,
+	treeAttempts = 3400,
 	mountainHeight = 150,
 	snowline = 128,
 

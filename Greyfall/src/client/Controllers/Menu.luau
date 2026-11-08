@@ -11,6 +11,7 @@ local Config = require(Shared.Config)
 local Theme = require(Shared.Theme)
 local Net = require(Shared.Net)
 local Ui = require(script.Parent.Ui)
+local Customize = require(script.Parent.Customize)
 
 local Menu = {}
 
@@ -190,6 +191,15 @@ local function buildMenu()
 		Net.get("Setup"):FireServer(choice.mode, choice.map, choice.difficulty)
 	end)
 	Ui.makePrimary(start)
+	Ui.button({
+		Text = "CUSTOMIZATION",
+		FontFace = Theme.FontBold,
+		TextSize = Theme.TextSize,
+		LayoutOrder = 42,
+		Parent = column,
+	}, function()
+		Customize.open()
+	end)
 end
 
 local function buildWaiting()
@@ -218,6 +228,18 @@ local function buildWaiting()
 		Size = UDim2.fromOffset(500, 20),
 		Parent = waitFrame,
 	})
+	-- Players waiting for the host can set up their look meanwhile.
+	Ui.button({
+		Text = "CUSTOMIZATION",
+		FontFace = Theme.FontBold,
+		TextSize = Theme.TextSize,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.62),
+		Size = UDim2.fromOffset(240, Theme.ControlHeight),
+		Parent = waitFrame,
+	}, function()
+		Customize.open()
+	end)
 	local track = Ui.new("Frame", {
 		BackgroundColor3 = Theme.PanelLight,
 		BorderSizePixel = 0,

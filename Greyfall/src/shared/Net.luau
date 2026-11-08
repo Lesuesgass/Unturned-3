@@ -5,10 +5,11 @@
 --   Effect  server -> all     tracers, impacts and positional sounds
 --   Notify  server -> client  short status messages
 --   Setup   client -> server  main menu choices from the host
+--   Avatar  client -> server  the player's appearance choices
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local NAMES = { "Action", "Attack", "Sync", "Effect", "Notify", "Setup" }
+local NAMES = { "Action", "Attack", "Sync", "Effect", "Notify", "Setup", "Avatar" }
 
 local Net = {}
 

@@ -57,6 +57,7 @@ local SECTIONS = {
 		title = "INTERFACE",
 		keys = {
 			{ "H", "Show or hide this list" },
+			{ "K", "Customize your look" },
 		},
 	},
 }

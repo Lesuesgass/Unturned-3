@@ -155,6 +155,15 @@ local function knockback(velocity: Vector3)
 	end
 end
 
+-- Played straight away on this client, for the player's own melee swings.
+function Effects.playSound(key: string, position: Vector3)
+	sound(key, position)
+end
+
+function Effects.playImpact(position: Vector3, isFlesh: boolean)
+	impact(position, isFlesh)
+end
+
 function Effects.init()
 	Net.get("Effect").OnClientEvent:Connect(function(kind, a, b)
 		if kind == "Tracer" then

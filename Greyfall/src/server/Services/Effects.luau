@@ -13,11 +13,26 @@ function Effects.init()
 	remote = Net.get("Effect")
 end
 
-function Effects.sound(key: string, position: Vector3)
+local Players = game:GetService("Players")
+
+-- Sends to everyone except one player (who already played it locally), or to everyone.
+local function broadcast(except: Player?, ...)
+	if not except then
+		remote:FireAllClients(...)
+		return
+	end
+	for _, player in Players:GetPlayers() do
+		if player ~= except then
+			remote:FireClient(player, ...)
+		end
+	end
+end
+
+function Effects.sound(key: string, position: Vector3, except: Player?)
 	local id = Config.Sounds[key]
 	local hasSound = if typeof(id) == "table" then #id > 0 else id ~= nil and id ~= ""
 	if hasSound then
-		remote:FireAllClients("Sound", key, position)
+		broadcast(except, "Sound", key, position)
 	end
 end
 
@@ -40,8 +55,8 @@ function Effects.knockback(player: Player, velocity: Vector3)
 	remote:FireClient(player, "Knockback", velocity)
 end
 
-function Effects.impact(position: Vector3, isFlesh: boolean)
-	remote:FireAllClients("Impact", position, isFlesh)
+function Effects.impact(position: Vector3, isFlesh: boolean, except: Player?)
+	broadcast(except, "Impact", position, isFlesh)
 end
 
 return Effects

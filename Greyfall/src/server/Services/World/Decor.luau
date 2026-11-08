@@ -37,7 +37,9 @@ local function part(
 end
 
 -- A lamp post. base sits on the ground, the arm reaches toward base.LookVector.
-function Decor.streetLamp(parent: Instance, base: CFrame)
+-- lit is false for every other lamp: the light pools overlap anyway and each light costs
+-- rendering time.
+function Decor.streetLamp(parent: Instance, base: CFrame, lit: boolean?)
 	local metal = C(58, 60, 58)
 	part(parent, V(0.5, 13, 0.5), base * CFrame.new(0, 6.5, 0), metal, M.Metal)
 	part(parent, V(0.35, 0.35, 3), base * CFrame.new(0, 12.8, -1.4), metal, M.Metal)
@@ -49,6 +51,9 @@ function Decor.streetLamp(parent: Instance, base: CFrame)
 		M.Neon,
 		{ CanCollide = false }
 	)
+	if lit == false then
+		return
+	end
 	local light = Instance.new("SpotLight")
 	light.Face = Enum.NormalId.Bottom
 	light.Range = 26

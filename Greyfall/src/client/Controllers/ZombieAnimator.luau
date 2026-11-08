@@ -243,7 +243,7 @@ function ZombieAnimator.init()
 		register(child)
 	end
 
-	RunService.Stepped:Connect(function(_, dt)
+	RunService.Stepped:Connect(function()
 		local now = os.clock()
 		local serverNow = workspace:GetServerTimeNow()
 		local cameraPosition = workspace.CurrentCamera.CFrame.Position
@@ -256,8 +256,13 @@ function ZombieAnimator.init()
 			local distance = (root.Position - cameraPosition).Magnitude
 			if distance < ANIMATE_DISTANCE then
 				local humanoid = model:FindFirstChildOfClass("Humanoid")
-				if humanoid and humanoid.Health > 0 then
-					local ok, err = pcall(pose, record, dt, now, serverNow)
+				-- Close zombies are posed every frame, distant ones a few times a second.
+				local interval = if distance < 45 then 0 elseif distance < 90 then 1 / 20 else 1 / 8
+				if humanoid and humanoid.Health > 0 and now >= (record.nextPose or 0) then
+					record.nextPose = now + interval
+					local step = now - (record.lastPose or now)
+					record.lastPose = now
+					local ok, err = pcall(pose, record, math.min(step, 0.2), now, serverNow)
 					if not ok and not record.reported then
 						record.reported = true
 						warn("[Greyfall] zombie pose failed:", err)

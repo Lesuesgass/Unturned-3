@@ -301,7 +301,7 @@ local function think(zombie, now: number, dt: number)
 			and now - zombie.lastAttack > Z.AttackCooldown
 		then
 			zombie.lastAttack = now
-			Survival.zombieHit(zombie.target :: Player, def.damage, zombie.typeName)
+			Survival.zombieHit(zombie.target :: Player, rng:NextInteger(def.damageMin, def.damageMax), zombie.typeName)
 			-- Clients see this attribute change, play the lunge and the attack sound.
 			zombie.model:SetAttribute("AttackAt", workspace:GetServerTimeNow())
 		end

@@ -36,6 +36,7 @@ local raised = 0 -- 0 hidden, 1 fully raised
 local visibleUntil = 0
 local punchStart = -math.huge
 local punchHand = "Left"
+local swingers: { [Model]: { at: number, hand: string } } = {}
 
 local function newPart(name: string, size: Vector3): BasePart
 	local part = Instance.new("Part")
@@ -94,10 +95,19 @@ local function emptyHanded(): boolean
 	return State.equippedStack() == nil
 end
 
+-- Animates the local character's arm straight away (third person, and for other cameras).
+function Fists.swing(hand: string)
+	local character = player.Character
+	if character then
+		swingers[character] = { at = workspace:GetServerTimeNow(), hand = hand }
+	end
+end
+
 -- Called by the input controller the moment the player punches, for instant feedback.
 function Fists.punch()
 	punchHand = if punchHand == "Right" then "Left" else "Right"
 	punchStart = os.clock()
+	Fists.swing(punchHand)
 	visibleUntil = punchStart + VISIBLE_TIME
 	colourFromCharacter()
 end
@@ -142,10 +152,11 @@ end
 
 -- Third-person swings -----------------------------------------------------------------
 
-local swingers: { [Model]: { at: number, hand: string } } = {}
-
 local function watchCharacter(character: Model)
 	local function changed()
+		if character == player.Character then
+			return -- our own swings are animated the moment we click (Fists.swing)
+		end
 		swingers[character] = {
 			at = character:GetAttribute("SwingAt") or 0,
 			hand = character:GetAttribute("SwingHand") or "Right",

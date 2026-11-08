@@ -240,15 +240,12 @@ local function inventoryDetails()
 			LayoutOrder = 11,
 			Parent = details,
 		})
-		local slotRow = Ui.new(
-			"Frame",
-			{
-				BackgroundTransparency = 1,
-				Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
-				LayoutOrder = 12,
-				Parent = details,
-			}
-		)
+		local slotRow = Ui.new("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, Theme.ControlHeight),
+			LayoutOrder = 12,
+			Parent = details,
+		})
 		Ui.new(
 			"UIListLayout",
 			{ FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), Parent = slotRow }
@@ -417,15 +414,12 @@ local function fillCrafting()
 	Ui.clear(listFrame)
 	local order = 0
 	-- Category switcher across the top of the list.
-	local bar = Ui.new(
-		"Frame",
-		{
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -4, 0, Theme.ControlHeight),
-			LayoutOrder = 0,
-			Parent = listFrame,
-		}
-	)
+	local bar = Ui.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -4, 0, Theme.ControlHeight),
+		LayoutOrder = 0,
+		Parent = listFrame,
+	})
 	Ui.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 3), Parent = bar })
 	for index, category in Recipes.Categories do
 		local active = category == craftCategory

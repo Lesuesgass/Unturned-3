@@ -22,6 +22,10 @@ workspace:SetAttribute("GameState", "Menu")
 
 local Services = script.Parent.Services
 local Settings = require(Services.Settings)
+local AvatarService = require(Services.AvatarService)
+
+-- Appearance can be changed from the menu before the world exists.
+AvatarService.init()
 
 -- Main menu ---------------------------------------------------------------------------
 
@@ -166,7 +170,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		player:SetAttribute("LastLife", os.clock() - state.lifeStarted)
 		task.delay(Config.Player.RespawnDelay, function()
 			if player.Parent then
-				player:LoadCharacter()
+				AvatarService.spawn(player)
 			end
 		end)
 	end)
@@ -181,7 +185,7 @@ local function onPlayerAdded(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
-	player:LoadCharacter()
+	AvatarService.spawn(player)
 end
 
 Players.PlayerAdded:Connect(onPlayerAdded)

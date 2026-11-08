@@ -21,6 +21,7 @@ local State = require(script.Parent.State)
 local Build = require(script.Parent.Build)
 local Interaction = require(script.Parent.Interaction)
 local Fists = require(script.Parent.Fists)
+local Effects = require(script.Parent.Effects)
 
 local InputController = {}
 
@@ -44,6 +45,34 @@ local function head(): BasePart?
 	local character = player.Character
 	local part = character and character:FindFirstChild("Head")
 	return if part and part:IsA("BasePart") then part else nil
+end
+
+local meleeParams = RaycastParams.new()
+meleeParams.FilterType = Enum.RaycastFilterType.Exclude
+
+-- Same sweep the server does, so the swing sound, hit sound and impact play the instant
+-- the player clicks instead of after a round trip. The server still decides the damage.
+local function predictMelee(def, direction: Vector3)
+	local h = head()
+	if not h then
+		return
+	end
+	local origin = h.Position
+	local punching = def == Items.Fists
+	local swingKey = if punching and Config.Sounds.PunchSwing ~= "" then "PunchSwing" else "MeleeSwing"
+	local hitKey = if punching and Config.Sounds.PunchHit ~= "" then "PunchHit" else "MeleeHit"
+	Effects.playSound(swingKey, origin)
+	meleeParams.FilterDescendantsInstances =
+		{ player.Character :: Instance, workspace:FindFirstChild("Drops") :: Instance }
+	local result = workspace:Spherecast(origin, 1.2, direction * def.range, meleeParams)
+	if result then
+		local model = result.Instance:FindFirstAncestorOfClass("Model")
+		local flesh = model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil
+		Effects.playImpact(result.Position, flesh)
+		if flesh then
+			Effects.playSound(hitKey, result.Position)
+		end
+	end
 end
 
 local function aimDirection(): Vector3?
@@ -74,7 +103,10 @@ local function primary()
 				attack:FireServer("Melee", direction)
 				if def == Items.Fists then
 					Fists.punch()
+				else
+					Fists.swing("Right")
 				end
+				predictMelee(def, direction)
 			end
 		end
 	elseif def.category == "Gun" then

@@ -92,6 +92,16 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
 | X | Salvage your own structure (hammer equipped) |
 | V | First or third person |
 | H | Show or hide the controls list in game |
+| K | Customize your look |
+
+## Your survivor
+
+Everyone has the same blocky body and the same clothes (slate shirt, dark trousers, boots).
+Roblox avatars are not used. What you choose is the head: skin tone (8), hair style (7), hair
+colour (8, also used for facial hair), eyes (8, including red eyes), mouth (7, including a
+grin) and facial hair (6). Set it from **Customization** in the main menu, from the waiting
+screen, or with **K** during play; saving applies it straight away. Choices are saved between
+sessions once the game is published (or in Studio with API access to DataStores turned on).
 
 ## Survival
 
@@ -105,7 +115,8 @@ hunting rifle 45%, carbine 30%. Fists never cause bleeding.
   It refills quickly once you can breathe.
 * **Bleeding** can start from a zombie or weapon hit (see Difficulty) and drains health until
   you use a bandage or medkit.
-* **Fists**: with nothing equipped, left click punches. A zombie goes down in 5 to 6 punches.
+* **Fists**: with nothing equipped, left click punches (one punch every 0.4 seconds). A zombie
+  goes down in 5 to 6 punches. Your own swing, hit sound and impact play the instant you click.
   In first person your fists come up into view for a moment with every punch.
 * **Hotbar**: any item can go in a hotbar slot (pick a slot number in the inventory). Weapons
   and tools are held; bandages, dressings, food and drinks are used with a left click.
@@ -247,7 +258,7 @@ There are four kinds, all with cube heads, pixel faces and glowing eyes:
 
 | Type | Look | What it does |
 |---|---|---|
-| Walker | Grey-green rot, torn clothes, blood stains, yellow eyes | The common shambler (about three in four zombies) |
+| Walker | Grey-green rot, torn clothes, blood stains, yellow eyes | The common shambler (about three in four zombies). Bites for 5 to 7 damage, like the Smoulderer and Livewire |
 | Smoulderer | Charred black skin split by glowing embers, always on fire | Hits set you alight for 4 seconds (3 damage per second). Diving into water puts the fire out |
 | Livewire | Pale skin with glowing blue veins, crackling with sparks | Hits slow you and drain 30 stamina. Zaps you with an electric arc from up to 14 studs away |
 | Behemoth | A giant in scraps of riot armour with red eyes | The boss of military bases: 1500 health, heavy hits, a ground slam that throws players back and cracks player bases, and short charges at anyone keeping their distance. Drops three rolls of military loot and returns 10 minutes after it dies |
@@ -290,6 +301,9 @@ you do not like:
 * Terrain is generated as a thin shell under the surface instead of solid rock down to the
   sea floor, and roads and towns are skipped early when far from a point.
 * Workspace streaming is on, so each player only loads the area around them.
+* Zombies near the camera are animated every frame, farther ones 20 or 8 times a second.
+* At most 50 zombies exist at once; only every other street lamp casts light.
+* Players load the world within about 640 studs of themselves.
 * Zombie zones only fill when a player is near, zombies far from every player think once a
   second instead of four times, and zombie animation and voices run on clients.
 * World parts have touch events turned off, since nothing uses them.

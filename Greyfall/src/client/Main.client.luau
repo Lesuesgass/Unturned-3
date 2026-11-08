@@ -21,6 +21,7 @@ local Effects = require(Controllers.Effects)
 local InputController = require(Controllers.Input)
 local Keybinds = require(Controllers.Keybinds)
 local Menu = require(Controllers.Menu)
+local Customize = require(Controllers.Customize)
 local ZombieAnimator = require(Controllers.ZombieAnimator)
 local Fists = require(Controllers.Fists)
 
@@ -35,6 +36,7 @@ local function start(name: string, init: () -> ())
 	end)
 end
 
+start("Customize", Customize.init)
 start("Menu", Menu.init)
 start("State", State.init)
 start("Hud", Hud.init)

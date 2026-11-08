@@ -122,7 +122,8 @@ local function melee(player: Player, state, def, direction: Vector3)
 	local punching = def == Items.Fists
 	local swingSound = if punching and Config.Sounds.PunchSwing ~= "" then "PunchSwing" else "MeleeSwing"
 	local hitSound = if punching and Config.Sounds.PunchHit ~= "" then "PunchHit" else "MeleeHit"
-	Effects.sound(swingSound, origin)
+	-- The attacker's own client plays the swing, hit sound and impact the moment they click.
+	Effects.sound(swingSound, origin, player)
 	local result = workspace:Spherecast(origin, 1.2, direction * def.range, hitParams(character))
 	if not result then
 		return
@@ -135,17 +136,17 @@ local function melee(player: Player, state, def, direction: Vector3)
 			amount *= 1.5
 		end
 		if Combat.damageHumanoid(player, humanoid, amount, false, def.bleedChance) then
-			Effects.impact(result.Position, true)
-			Effects.sound(hitSound, result.Position)
+			Effects.impact(result.Position, true, player)
+			Effects.sound(hitSound, result.Position, player)
 		end
 	elseif Resources.isResource(hit) then
 		Resources.harvest(player, hit :: BasePart, def)
-		Effects.impact(result.Position, false)
+		Effects.impact(result.Position, false, player)
 	elseif Building.isStructure(hit) then
 		Building.damage(hit, def.structureDamage or 0, "melee", player)
-		Effects.impact(result.Position, false)
+		Effects.impact(result.Position, false, player)
 	else
-		Effects.impact(result.Position, false)
+		Effects.impact(result.Position, false, player)
 	end
 end
 
